@@ -201,9 +201,9 @@ namespace uv::bot {
             return;
         }
 
-        int input_action_amount;
-        int physic_player_1_action_amount;
-        int physic_player_2_action_amount;
+        int input_action_amount = 0;
+        int physic_player_1_action_amount = 0;
+        int physic_player_2_action_amount = 0;
 
         file.read(reinterpret_cast<char*>(&input_action_amount), sizeof(int));
         file.read(reinterpret_cast<char*>(&input_action_amount), sizeof(int));
