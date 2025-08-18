@@ -1,7 +1,10 @@
 {
 	  "geode": "4.7.0",
 	  "gd": {
-		    "win": "2.2074"
+		    "win": "2.2074",
+		    "android": "2.2074",
+		    "mac": "2.2074",
+		    "ios": "2.2074"
 	  },
 	  "id": "aciddev.uvbot",
 	  "name": "uvBot",
