@@ -206,8 +206,8 @@ namespace uv::bot {
         int physic_player_2_action_amount = 0;
 
         file.read(reinterpret_cast<char*>(&input_action_amount), sizeof(int));
-        file.read(reinterpret_cast<char*>(&input_action_amount), sizeof(int));
-        file.read(reinterpret_cast<char*>(&input_action_amount), sizeof(int));
+        file.read(reinterpret_cast<char*>(&physic_player_1_action_amount), sizeof(int));
+        file.read(reinterpret_cast<char*>(&physic_player_2_action_amount), sizeof(int));
 
         for (int i = 0; i < input_action_amount; i++) {
             input_action action;
