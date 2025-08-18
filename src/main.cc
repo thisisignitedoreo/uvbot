@@ -44,7 +44,7 @@ class $modify(cocos2d::CCEGLView) {
         CCEGLView::onGLFWKeyCallback(window, key, scancode, action, mods);
 
         if (action == GLFW_PRESS) {
-            if (key == GLFW_KEY_0) uv::gui::show = !uv::gui::show;
+            if (key == GLFW_KEY_MINUS) uv::gui::show = !uv::gui::show;
         }
     }
 };
