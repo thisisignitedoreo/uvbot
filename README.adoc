@@ -7,7 +7,7 @@ A free and open source TAS tool for Geometry Dash
 WARNING: You are kinda early. This is still in heavy developemnt
 
 == Quickstart
-Go to https://github.com/thisisignitedoreo/uvbot/releases/latest[the latest release], download `aciddev.uvbot.geode`, and put it into `<Geometry Dash Installation>/geode/mods/`
+Compile it or download from https://github.com/thisisignitedoreo/uvbot/actions[Actions]
 
 == `.uv` format
 The file format is as follows:
