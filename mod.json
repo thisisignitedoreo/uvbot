@@ -1,0 +1,11 @@
+{
+	  "geode": "4.7.0",
+	  "gd": {
+		    "win": "2.2074"
+	  },
+	  "id": "aciddev.uvbot",
+	  "name": "uvBot",
+	  "version": "v0.0.0",
+	  "developer": "aciddev_",
+	  "description": "A TAS tool for Geometry Dash"
+}
