@@ -4,8 +4,6 @@
 
 #include "common.hh"
 
-using namespace geode::prelude;
-
 $on_mod(Loaded) {
     ImGuiCocos::get().setup(uv::gui::setup).draw(uv::gui::draw);
     
