@@ -1,3 +1,5 @@
+#pragma once
+
 #include <chrono>
 
 #include <Geode/Geode.hpp>
@@ -5,6 +7,7 @@
 namespace uv {
     namespace gui {
         extern bool show;
+        extern bool debug;
         extern std::chrono::time_point<std::chrono::steady_clock> toggle_time;
         
         void setup();
@@ -57,6 +60,8 @@ namespace uv {
     namespace hacks {
         extern bool speedhack;
         extern float speedhack_multiplier;
+        
+        extern bool noclip, noclip_p1, noclip_p2;
     }
     
     namespace practice_fix {

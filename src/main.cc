@@ -70,6 +70,11 @@ class $modify(PlayLayer) {
         uv::practice_fix::restore_playerobject(this->m_player1, static_cast<HookedCheckpointObject*>(cp)->m_fields->p1);
         uv::practice_fix::restore_playerobject(this->m_player2, static_cast<HookedCheckpointObject*>(cp)->m_fields->p2);
     }
+
+    void destroyPlayer(PlayerObject *po, GameObject *go) {
+        bool let_him_live = uv::hacks::noclip || (uv::hacks::noclip_p1 && po == this->m_player1) || (uv::hacks::noclip_p2 && po == this->m_player2);
+        if (!let_him_live) PlayLayer::destroyPlayer(po, go);
+    }
 };
 
 class $modify(PlayerObject) {
@@ -100,6 +105,7 @@ class $modify(cocos2d::CCEGLView) {
                 uv::gui::toggle_time = std::chrono::steady_clock::now();
                 uv::gui::show = !uv::gui::show;
             }
+            if (key == GLFW_KEY_MINUS && uv::gui::show) uv::gui::debug = true;
         }
     }
 };

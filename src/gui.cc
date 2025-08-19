@@ -7,6 +7,10 @@
 
 namespace uv::gui {
     bool show = false;
+    bool debug = false;
+
+    bool show_demo = false, show_style_editor = false;
+    
     char macro_name[512];
     std::chrono::steady_clock::time_point toggle_time;
     const std::chrono::steady_clock::duration animation_duration = std::chrono::milliseconds(150);
@@ -123,7 +127,17 @@ namespace uv::gui {
             alpha_value = alpha_value < 0.5f ? 4 * alpha_value * alpha_value * alpha_value : 1 - (intermediate * intermediate * intermediate) / 2;
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha_value);
         }
-        
+
+        if (uv::bot::current_state == uv::bot::state::recording) {
+            ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.23f, 0.13f, 0.13f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.27f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.23f, 0.13f, 0.13f, 1.0f));
+        } else if (uv::bot::current_state == uv::bot::state::playing) {
+            ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.13f, 0.23f, 0.13f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.17f, 0.27f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.13f, 0.23f, 0.13f, 1.0f));
+        }
+
         ImGui::Begin("uvBot");
 
         if (ImGui::BeginTabBar("uvBot TabBar")) {
@@ -131,12 +145,14 @@ namespace uv::gui {
                 // I hate C++
                 auto *state_pointer = reinterpret_cast<int*>(&uv::bot::current_state);
                 
-                bool changed = ImGui::RadioButton("None", state_pointer, uv::bot::state::none);
+                bool changed_none = ImGui::RadioButton("None", state_pointer, uv::bot::state::none);
                 ImGui::SameLine();
-                changed = changed || ImGui::RadioButton("Recording", state_pointer, uv::bot::state::recording);
+                bool changed_recording = ImGui::RadioButton("Recording", state_pointer, uv::bot::state::recording);
                 ImGui::SameLine();
-                changed = changed || ImGui::RadioButton("Playing", state_pointer, uv::bot::state::playing);
+                bool changed_playing = ImGui::RadioButton("Playing", state_pointer, uv::bot::state::playing);
 
+                bool changed = changed_none || changed_recording || changed_playing;
+                
                 if (changed) {
                     uv::bot::current_input_action = 0;
                     uv::bot::current_physic_player_1_action = 0;
@@ -168,6 +184,21 @@ namespace uv::gui {
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::DragFloat("##Speedhack", &uv::hacks::speedhack_multiplier, 0.01f, 0.0f, 3.0f, "Speedhack: %.2fx");
+
+                if (ImGui::Checkbox("Noclip", &uv::hacks::noclip) && uv::hacks::noclip) {
+                    uv::hacks::noclip_p1 = false;
+                    uv::hacks::noclip_p2 = false;
+                }
+                ImGui::SameLine();
+                if (ImGui::Checkbox("Player 1", &uv::hacks::noclip_p1) && uv::hacks::noclip_p1) {
+                    uv::hacks::noclip = false;
+                    uv::hacks::noclip_p2 = false;
+                }
+                ImGui::SameLine();
+                if (ImGui::Checkbox("Player 2", &uv::hacks::noclip_p2) && uv::hacks::noclip_p2) {
+                    uv::hacks::noclip_p1 = false;
+                    uv::hacks::noclip = false;
+                }
                 
                 ImGui::EndTabItem();
             }
@@ -175,23 +206,48 @@ namespace uv::gui {
             if (ImGui::BeginTabItem("About")) {
                 ImGui::SeparatorText("About uvBot");
 
-                ImGui::TextWrapped("uvBot is a frame GD bot made by aciddev_");
-                ImGui::TextWrapped("uvBot is FOSS software - if you paid for it I suggest making a refund.\n"
+                ImGui::PushTextWrapPos(0.0f);
+
+                ImGui::Text("uvBot is a frame GD bot made by aciddev_");
+                ImGui::Text("uvBot is FOSS software - if you paid for it I suggest making a refund.\n"
                 "The only official way to obtain uvBot is through GitHub Actions, Github Releases or Geode Index."
                 " If you got your copy of uvBot somewhere else it is highly recommended you delete this version,"
                 " as there is a chance that it was tampered with. (e.g. malware/stealers included)");
-                ImGui::TextWrapped("The source code is under a Public Domain - this means you can do anything"
+                ImGui::Text("The source code is under a Public Domain - this means you can do anything"
                 " you want with it. Copy it, get inspired from it, use parts of it in your paid mod, etc.");
-                ImGui::TextWrapped("\nThank you for using uvBot <3\nIf you want to - give it a star on GitHub");
+                ImGui::Text("\nThank you for using uvBot <3\nIf you want to - give it a star on GitHub\n");
+                
                 ImGui::TextLinkOpenURL("GitHub repository", "https://github.com/thisisignitedoreo/uvbot");
+                ImGui::TextLinkOpenURL("aciddev_'s GitHub", "https://github.com/thisisignitedoreo");
+                ImGui::TextLinkOpenURL("aciddev_'s YouTube", "https://youtube.com/@aciddev_");
+                ImGui::TextLinkOpenURL("aciddev_'s Telegram", "https://t.me/aciddevv");
+                ImGui::Text("aciddev_'s Discord: aciddev_");
 
+                ImGui::PopTextWrapPos();
+                
                 ImGui::EndTabItem();
             }
-            
+
+            if (debug && ImGui::BeginTabItem("Debug")) {
+                if (ImGui::Button(show_demo ? "Hide Demo window" : "Show Demo window")) show_demo = !show_demo;
+                if (ImGui::Button(show_style_editor ? "Hide Style Editor window" : "Show Style Editor window")) show_style_editor = !show_style_editor;
+                
+                ImGui::EndTabItem();
+            }
+
             ImGui::EndTabBar();
         }
         
         ImGui::End();
+
+        if (uv::bot::current_state != uv::bot::state::none) {
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
+        }
+
+        if (show_demo) ImGui::ShowDemoWindow();
+        if (show_style_editor) ImGui::ShowStyleEditor();
 
         if (animating) ImGui::PopStyleVar();
     }

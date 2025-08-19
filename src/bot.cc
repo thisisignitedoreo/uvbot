@@ -21,7 +21,7 @@ namespace uv::bot {
     static const auto macro_path = geode::Mod::get()->getSaveDir() / "Macros";
 
     const unsigned char macro_version = 1;
-
+    
     frame_t get_frame(void) {
         PlayLayer *pl = PlayLayer::get();
         return pl ? static_cast<frame_t>(pl->m_gameState.m_currentProgress) : 0;
