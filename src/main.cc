@@ -30,6 +30,11 @@ class $modify(PlayLayer) {
         PlayLayer::resetLevel();
         uv::bot::reset();
     }
+
+    void playEndAnimationToPos(cocos2d::CCPoint p1) {
+	PlayLayer::playEndAnimationToPos(p1);
+	uv::bot::current_state = uv::bot::state::none;
+    }
 };
 
 class $modify(CCScheduler) {
@@ -44,7 +49,7 @@ class $modify(cocos2d::CCEGLView) {
         CCEGLView::onGLFWKeyCallback(window, key, scancode, action, mods);
 
         if (action == GLFW_PRESS) {
-            if (key == GLFW_KEY_MINUS) uv::gui::show = !uv::gui::show;
+            if (key == GLFW_KEY_GRAVE_ACCENT) uv::gui::show = !uv::gui::show;
         }
     }
 };
