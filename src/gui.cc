@@ -128,6 +128,21 @@ namespace uv::gui {
 
         if (ImGui::BeginTabBar("uvBot TabBar")) {
             if (ImGui::BeginTabItem("Bot")) {
+                // I hate C++
+                auto *state_pointer = reinterpret_cast<int*>(&uv::bot::current_state);
+                
+                bool changed = ImGui::RadioButton("None", state_pointer, uv::bot::state::none);
+                ImGui::SameLine();
+                changed = changed || ImGui::RadioButton("Recording", state_pointer, uv::bot::state::recording);
+                ImGui::SameLine();
+                changed = changed || ImGui::RadioButton("Playing", state_pointer, uv::bot::state::playing);
+
+                if (changed) {
+                    uv::bot::current_input_action = 0;
+                    uv::bot::current_physic_player_1_action = 0;
+                    uv::bot::current_physic_player_2_action = 0;
+                }
+                
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::InputTextWithHint("##Macro Name", "Macro Name", macro_name, 512);
 
@@ -136,15 +151,6 @@ namespace uv::gui {
                 if (ImGui::Button("Load", { ImGui::GetContentRegionAvail().x / 2, 0 })) uv::bot::load(macro_name);
                 ImGui::SameLine();
                 if (ImGui::Button("Clear", { ImGui::GetContentRegionAvail().x, 0 })) uv::bot::clear();
-                
-                // I hate C++
-                auto *state_pointer = reinterpret_cast<int*>(&uv::bot::current_state);
-                
-                ImGui::RadioButton("None", state_pointer, uv::bot::state::none);
-                ImGui::SameLine();
-                ImGui::RadioButton("Recording", state_pointer, uv::bot::state::recording);
-                ImGui::SameLine();
-                ImGui::RadioButton("Playing", state_pointer, uv::bot::state::playing);
  
                 ImGui::Text("Input Actions: %d/%d", uv::bot::current_input_action, uv::bot::input_actions.size());
                 ImGui::Text("Physic Actions:");
@@ -163,6 +169,22 @@ namespace uv::gui {
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::DragFloat("##Speedhack", &uv::hacks::speedhack_multiplier, 0.01f, 0.0f, 3.0f, "Speedhack: %.2fx");
                 
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("About")) {
+                ImGui::SeparatorText("About uvBot");
+
+                ImGui::TextWrapped("uvBot is a frame GD bot made by aciddev_");
+                ImGui::TextWrapped("uvBot is FOSS software - if you paid for it I suggest making a refund.\n"
+                "The only official way to obtain uvBot is through GitHub Actions, Github Releases or Geode Index."
+                " If you got your copy of uvBot somewhere else it is highly recommended you delete this version,"
+                " as there is a chance that it was tampered with. (e.g. malware/stealers included)");
+                ImGui::TextWrapped("The source code is under a Public Domain - this means you can do anything"
+                " you want with it. Copy it, get inspired from it, use parts of it in your paid mod, etc.");
+                ImGui::TextWrapped("\nThank you for using uvBot <3\nIf you want to - give it a star on GitHub");
+                ImGui::TextLinkOpenURL("GitHub repository", "https://github.com/thisisignitedoreo/uvbot");
+
                 ImGui::EndTabItem();
             }
             
