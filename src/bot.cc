@@ -65,8 +65,6 @@ namespace uv::bot {
 
         frame_t frame = get_frame();
 
-        geode::log::debug("update_input(): frame = {}", frame);
-        
         if (current_state == state::playing) {
             if (current_input_action < input_actions.size()) {
                 input_action this_action = input_actions[current_input_action];
@@ -89,8 +87,6 @@ namespace uv::bot {
         if (current_state == state::none) return;
 
         frame_t frame = get_frame();
-
-        geode::log::debug("update_physics(): frame = {}", frame);
 
         if (current_state == state::recording) {
             bool recorded_p1 = physic_player_1_actions.size() && physic_player_1_actions.back().frame >= frame;

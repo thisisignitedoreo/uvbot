@@ -44,7 +44,7 @@ namespace uv {
         };
         
         extern state current_state;
-
+        
         frame_t get_frame(void);
         
         void reset(void);
@@ -60,14 +60,17 @@ namespace uv {
     namespace hacks {
         extern bool speedhack;
         extern float speedhack_multiplier;
-        
         extern bool noclip, noclip_p1, noclip_p2;
+        extern bool hitboxes;
+        extern float hitboxes_thickness;
+        extern bool layout_mode;
     }
     
     namespace practice_fix {
         // I am surprised this works too
         struct checkpoint_data {
             char data[sizeof(PlayerObject)];
+            double rotation;
         };
 
         checkpoint_data from_playerobject(PlayerObject *po);

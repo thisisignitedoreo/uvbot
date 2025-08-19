@@ -200,6 +200,13 @@ namespace uv::gui {
                     uv::hacks::noclip = false;
                 }
                 
+                ImGui::Checkbox("Show Hitboxes", &uv::hacks::hitboxes);
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                ImGui::DragFloat("##Hitboxes Thickness", &uv::hacks::hitboxes_thickness, 0.01f, 0.01f, 3.0f, "Hitboxes Thickness: %.2f", ImGuiSliderFlags_ClampOnInput);
+                
+                ImGui::Checkbox("Layout Mode", &uv::hacks::layout_mode);
+                
                 ImGui::EndTabItem();
             }
 
@@ -209,9 +216,9 @@ namespace uv::gui {
                 ImGui::PushTextWrapPos(0.0f);
 
                 ImGui::Text("uvBot is a frame GD bot made by aciddev_");
-                ImGui::Text("uvBot is FOSS software - if you paid for it I suggest making a refund.\n"
+                ImGui::Text("uv is FOSS software - if you paid for it I suggest making a refund.\n"
                 "The only official way to obtain uvBot is through GitHub Actions, Github Releases or Geode Index."
-                " If you got your copy of uvBot somewhere else it is highly recommended you delete this version,"
+                " If you got your copy of uv somewhere else it is highly recommended you delete this version,"
                 " as there is a chance that it was tampered with. (e.g. malware/stealers included)");
                 ImGui::Text("The source code is under a Public Domain - this means you can do anything"
                 " you want with it. Copy it, get inspired from it, use parts of it in your paid mod, etc.");
