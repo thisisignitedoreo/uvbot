@@ -46,7 +46,8 @@ namespace uv {
         
         void reset(void);
         bool button(bool held, int button, bool player_1);
-        void update(GJBaseGameLayer *self, float delta);
+        void update_input(GJBaseGameLayer *self, float delta);
+        void update_physics(GJBaseGameLayer *self, float delta);
 
         void clear();
         void save(std::string name);
@@ -56,5 +57,15 @@ namespace uv {
     namespace hacks {
         extern bool speedhack;
         extern float speedhack_multiplier;
+    }
+    
+    namespace practice_fix {
+        // I am surprised this works too
+        struct checkpoint_data {
+            char data[sizeof(PlayerObject)];
+        };
+
+        checkpoint_data from_playerobject(PlayerObject *po);
+        void restore_playerobject(PlayerObject *po, checkpoint_data cpd);
     }
 }

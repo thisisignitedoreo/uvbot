@@ -160,7 +160,8 @@ namespace uv::gui {
             if (ImGui::BeginTabItem("Hacks")) {
                 ImGui::Checkbox("##Speedhack Checkbox", &uv::hacks::speedhack);
                 ImGui::SameLine();
-                ImGui::DragFloat("##Speedhack", &uv::hacks::speedhack_multiplier, 0.01f, 0.0f, 2.0f, "Speedhack: %.2f");
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                ImGui::DragFloat("##Speedhack", &uv::hacks::speedhack_multiplier, 0.01f, 0.0f, 3.0f, "Speedhack: %.2fx");
                 
                 ImGui::EndTabItem();
             }

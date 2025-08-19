@@ -60,12 +60,38 @@ namespace uv::bot {
         return true;
     }
     
-    void update(GJBaseGameLayer *self, float delta) {
+    void update_input(GJBaseGameLayer *self, float delta) {
+        if (current_state == state::none) return;
+
+        frame_t frame = get_frame();
+
+        geode::log::debug("update_input(): frame = {}", frame);
+        
+        if (current_state == state::playing) {
+            if (current_input_action < input_actions.size()) {
+                input_action this_action = input_actions[current_input_action];
+                if (this_action.frame == frame) {
+                    int button = (this_action.flags >> 1) % 3 + 1;
+                    permit_press = true;
+                    self->handleButton(this_action.flags & 1, button, (this_action.flags >> 1) > 2);
+                    permit_press = false;
+                } else if (this_action.frame < frame) {
+                    while (current_input_action < input_actions.size() && input_actions[current_input_action].frame < frame) {
+                        current_input_action++;
+                    }
+                }
+            }
+        }
+    }
+    
+    void update_physics(GJBaseGameLayer *self, float delta) {
         // Do not waste precious processing power
         if (current_state == state::none) return;
 
         frame_t frame = get_frame();
-        
+
+        geode::log::debug("update_physics(): frame = {}", frame);
+
         if (current_state == state::recording) {
             bool recorded_p1 = physic_player_1_actions.size() && physic_player_1_actions.back().frame >= frame;
             bool recorded_p2 = physic_player_2_actions.size() && physic_player_1_actions.back().frame >= frame;
@@ -90,45 +116,29 @@ namespace uv::bot {
                 });
             }
         } else if (current_state == state::playing) {
-            if (current_input_action < input_actions.size()) {
-                input_action this_action = input_actions[current_input_action];
-                if (this_action.frame == frame) {
-                    int button = (this_action.flags >> 1) % 3 + 1;
-                    permit_press = true;
-                    self->handleButton(this_action.flags & 1, button, (this_action.flags >> 1) > 2);
-                    permit_press = false;
-                } else if (this_action.frame < frame) {
-                    while (current_input_action < input_actions.size() && input_actions[current_input_action].frame < frame) {
-                        current_input_action++; 
-                    }
-                }
-            }
-            
             if (current_physic_player_1_action < physic_player_1_actions.size()) {
+                while (current_physic_player_1_action < physic_player_1_actions.size() && physic_player_1_actions[current_physic_player_1_action].frame < frame) {
+                    current_physic_player_1_action++;
+                }
                 physic_action this_action = physic_player_1_actions[current_physic_player_1_action];
                 if (this_action.frame == frame) {
                     self->m_player1->m_position.x = this_action.x;
                     self->m_player1->m_position.y = this_action.y;
                     self->m_player1->setRotation(this_action.rotation);
                     self->m_player1->m_yVelocity = this_action.y_velocity;
-                } else if (this_action.frame < frame) {
-                    while (current_physic_player_1_action < physic_player_1_actions.size() && physic_player_1_actions[current_physic_player_1_action].frame < frame) {
-                        current_physic_player_1_action++;
-                    }
                 }
             }
             
             if (current_physic_player_2_action < physic_player_2_actions.size()) {
+                while (current_physic_player_2_action < physic_player_2_actions.size() && physic_player_2_actions[current_physic_player_2_action].frame < frame) {
+                    current_physic_player_2_action++;
+                }
                 physic_action this_action = physic_player_2_actions[current_physic_player_2_action];
                 if (this_action.frame == frame) {
                     self->m_player2->m_position.x = this_action.x;
                     self->m_player2->m_position.y = this_action.y;
                     self->m_player2->setRotation(this_action.rotation);
                     self->m_player2->m_yVelocity = this_action.y_velocity;
-                } else if (this_action.frame < frame) {
-                    while (current_physic_player_2_action < physic_player_2_actions.size() && physic_player_2_actions[current_physic_player_2_action].frame < frame) {
-                        current_physic_player_2_action++;
-                    }
                 }
             }
         }

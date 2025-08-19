@@ -3,7 +3,9 @@
 
 #include <Geode/Geode.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
+#include <Geode/modify/CheckpointObject.hpp>
 #include <Geode/modify/PlayLayer.hpp>
+#include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/CCScheduler.hpp>
 #include <Geode/modify/CCEGLView.hpp>
 
@@ -14,15 +16,40 @@
 using namespace geode::prelude;
 
 class $modify(GJBaseGameLayer) {
-    void processCommands(float dt) {
-        GJBaseGameLayer::processCommands(dt);
-        uv::bot::update(this, dt);
-    }
-
     void handleButton(bool down, int button, bool isPlayer1) {
         if (uv::bot::button(down, button, isPlayer1)) {
             GJBaseGameLayer::handleButton(down, button, isPlayer1);
         }
+    }
+    
+    void processCommands(float dt) {
+        GJBaseGameLayer::processCommands(dt);
+        uv::bot::update_input(this, dt);
+    }
+    
+    void update(float dt) {
+        GJBaseGameLayer::update(dt);
+        uv::bot::update_physics(this, dt);
+    }
+};
+
+class $modify(HookedCheckpointObject, CheckpointObject) {
+    struct Fields {
+        uv::practice_fix::checkpoint_data p1, p2;
+    };
+
+    bool init() {
+        bool r = CheckpointObject::init();
+        if (!r) return r;
+
+        PlayLayer *pl = PlayLayer::get();
+
+        if (pl) {
+            m_fields->p1 = uv::practice_fix::from_playerobject(pl->m_player1);
+            m_fields->p2 = uv::practice_fix::from_playerobject(pl->m_player2);
+        }
+        
+        return r;
     }
 };
 
@@ -31,9 +58,28 @@ class $modify(PlayLayer) {
         PlayLayer::resetLevel();
         uv::bot::reset();
     }
-
+    
     void playEndAnimationToPos(cocos2d::CCPoint p1) {
 	PlayLayer::playEndAnimationToPos(p1);
+	uv::bot::current_state = uv::bot::state::none;
+    }
+
+    void loadFromCheckpoint(CheckpointObject* cp) {
+        PlayLayer::loadFromCheckpoint(cp);
+        
+        uv::practice_fix::restore_playerobject(this->m_player1, static_cast<HookedCheckpointObject*>(cp)->m_fields->p1);
+        uv::practice_fix::restore_playerobject(this->m_player2, static_cast<HookedCheckpointObject*>(cp)->m_fields->p2);
+    }
+};
+
+class $modify(PlayerObject) {
+    void resetLevel(void) {
+        this->resetLevel();
+        uv::bot::reset();
+    }
+
+    void playEndAnimationToPos(cocos2d::CCPoint p1) {
+	this->playEndAnimationToPos(p1);
 	uv::bot::current_state = uv::bot::state::none;
     }
 };
