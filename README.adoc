@@ -4,7 +4,7 @@ image::logo.png[uvBot logo,200]
 = uvBot
 A free and open source TAS tool for Geometry Dash
 
-WARNING: You are kinda early. This is still in heavy developemnt
+WARNING: You are kinda early. This is still in heavy development
 
 == Quickstart
 Compile it or download from https://github.com/thisisignitedoreo/uvbot/actions[Actions]
@@ -44,3 +44,14 @@ struct replay {
     char back_magic[5] = "TOBVU";
 };
 ----
+
+== Contributions
+This project is *Open Source*, however, it is not *Open Contribution*.
+Any pull request created will be closed. Issues, however, are welcome.
+
+The reason is simple - I want to have all the control over the codebase,
+so a bad reviewed PR won't break the bot or introduce some kind of
+undebuggable bug.
+
+If you want to have a version with your modifications - feel free to
+create a fork, however, none of them will be accepted into upstream.
