@@ -6,6 +6,11 @@
 		    "mac": "2.2074",
 		    "ios": "2.2074"
 	  },
+	  "resources": {
+		    "files": [
+			      "assets/*"
+		    ]
+	  },
 	  "id": "aciddev.uvbot",
 	  "name": "uvBot",
 	  "version": "v0.0.0",
