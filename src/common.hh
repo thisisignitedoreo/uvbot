@@ -1,8 +1,11 @@
+#include <chrono>
+
 #include <Geode/Geode.hpp>
 
 namespace uv {
     namespace gui {
         extern bool show;
+        extern std::chrono::time_point<std::chrono::steady_clock> toggle_time;
         
         void setup();
         void draw();

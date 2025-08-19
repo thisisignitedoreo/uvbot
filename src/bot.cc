@@ -1,6 +1,6 @@
-#include <Geode/Geode.hpp>
-
 #include <cstdio>
+
+#include <Geode/Geode.hpp>
 
 #include "common.hh"
 

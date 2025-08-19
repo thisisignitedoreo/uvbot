@@ -1,4 +1,5 @@
 #include <cstring>
+#include <chrono>
 
 #include <Geode/Geode.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
@@ -49,7 +50,10 @@ class $modify(cocos2d::CCEGLView) {
         CCEGLView::onGLFWKeyCallback(window, key, scancode, action, mods);
 
         if (action == GLFW_PRESS) {
-            if (key == GLFW_KEY_GRAVE_ACCENT) uv::gui::show = !uv::gui::show;
+            if (key == GLFW_KEY_TAB) {
+                uv::gui::toggle_time = std::chrono::steady_clock::now();
+                uv::gui::show = !uv::gui::show;
+            }
         }
     }
 };

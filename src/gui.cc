@@ -1,3 +1,6 @@
+#include <chrono>
+#include <cmath>
+
 #include <imgui.h>
 
 #include "common.hh"
@@ -5,6 +8,8 @@
 namespace uv::gui {
     bool show = false;
     char macro_name[512];
+    std::chrono::steady_clock::time_point toggle_time;
+    const std::chrono::steady_clock::duration animation_duration = std::chrono::milliseconds(150);
 
     void setup() {
         ImGuiIO &io = ImGui::GetIO();
@@ -107,9 +112,19 @@ namespace uv::gui {
     }
 
     void draw() {
-        if (!show) return;
+        bool animating = std::chrono::steady_clock::now() - toggle_time < animation_duration;
+        if (!show && !animating) return;
+
+        if (animating) {
+            float alpha_value = (std::chrono::steady_clock::now() - toggle_time).count() / static_cast<float>(animation_duration.count());
+            if (!show) alpha_value = 1.0f - alpha_value;
+            // Apply Cubic InOut easing
+            float intermediate = (-2 * alpha_value) + 2;
+            alpha_value = alpha_value < 0.5f ? 4 * alpha_value * alpha_value * alpha_value : 1 - (intermediate * intermediate * intermediate) / 2;
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha_value);
+        }
         
-        ImGui::Begin("uvBot", &show);
+        ImGui::Begin("uvBot");
 
         if (ImGui::BeginTabBar("uvBot TabBar")) {
             if (ImGui::BeginTabItem("Bot")) {
@@ -154,5 +169,7 @@ namespace uv::gui {
         }
         
         ImGui::End();
+
+        if (animating) ImGui::PopStyleVar();
     }
 }
