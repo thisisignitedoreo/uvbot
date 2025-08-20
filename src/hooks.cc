@@ -163,6 +163,8 @@ class $modify(PlayLayer) {
     }
 
     void updateProgressbar(void) {
+        PlayLayer::updateProgressbar();
+        
         // 0166 -> Is "Show Hitboxes" option on?
         if (uv::hacks::hitboxes && !this->m_isPracticeMode || !GameManager::get()->getGameVariable("0166")) PlayLayer::updateDebugDraw();
         this->m_debugDrawNode->setVisible(uv::hacks::hitboxes);
