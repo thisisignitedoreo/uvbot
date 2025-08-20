@@ -7,6 +7,7 @@ A free and open source TAS tool for Geometry Dash
 WARNING: You are kinda early. This is still in heavy development
 
 Features include:
+
 * Good accuracy (Hardest recorded level by me is Thinking Space II)
 * Standalone-ness (You don't need an additional mod menu to use this bot efficiently)
 
