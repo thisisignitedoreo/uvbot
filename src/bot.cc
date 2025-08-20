@@ -147,7 +147,7 @@ namespace uv::bot {
 
         input_actions.resize(0);
         physic_player_1_actions.resize(0);
-        physic_player_1_actions.resize(0);
+        physic_player_2_actions.resize(0);
     }
     
     void save(std::string name) {

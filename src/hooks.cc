@@ -8,6 +8,7 @@
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/GameObject.hpp>
 #include <Geode/modify/PlayerObject.hpp>
+#include <Geode/modify/EndLevelLayer.hpp>
 #include <Geode/modify/CCScheduler.hpp>
 #include <Geode/modify/CCEGLView.hpp>
 #include <Geode/modify/CCDrawNode.hpp>
@@ -15,6 +16,9 @@
 #include "common.hh"
 
 static bool debug_update = false;
+static bool override_rotation = false;
+static bool level_ended = false;
+static std::chrono::steady_clock::time_point level_end_point;
 
 class $modify(GJBaseGameLayer) {
     void handleButton(bool down, int button, bool isPlayer1) {
@@ -29,6 +33,16 @@ class $modify(GJBaseGameLayer) {
     }
     
     void update(float dt) {
+        if (uv::bot::recorder::recording) {
+            uv::bot::recorder::update();
+            if (level_ended) {
+                std::chrono::steady_clock::duration excess_amount(std::chrono::milliseconds(static_cast<long long>(uv::bot::recorder::recording_options.excess_render * 1000)));
+                if (std::chrono::steady_clock::now() - level_end_point >= excess_amount) {
+                    level_ended = false;
+                    uv::bot::recorder::end();
+                }
+            }
+        }
         GJBaseGameLayer::update(dt);
         uv::bot::update_physics(this, dt);
     }
@@ -63,15 +77,24 @@ class $modify(GJBaseGameLayer) {
     }
 };
 
+class $modify(cocos2d::CCScheduler) {
+    void update(float dt) {
+        if (uv::bot::recorder::recording) {
+            CCScheduler::update(1.0f / uv::bot::recorder::recording_options.fps);
+        } else {
+            CCScheduler::update(dt);
+        }
+    }
+};
+
 class $modify(HookedCheckpointObject, CheckpointObject) {
     struct Fields {
         uv::practice_fix::checkpoint_data p1, p2;
     };
 
     bool init() {
-        bool r = CheckpointObject::init();
-        if (!r) return r;
-
+        if (CheckpointObject::init()) return false;
+        
         PlayLayer *pl = PlayLayer::get();
 
         if (pl) {
@@ -79,7 +102,37 @@ class $modify(HookedCheckpointObject, CheckpointObject) {
             m_fields->p2 = uv::practice_fix::from_playerobject(pl->m_player2);
         }
         
-        return r;
+        return true;
+    }
+};
+
+// Funky GD physics lmao
+// Thanks ChatGPT
+
+class $modify(PlayerObject) {
+    void updateRotation(float p0) {
+        float old_rotation = this->getRotation();
+        
+        PlayerObject::updateRotation(p0);
+        
+        if (override_rotation) {
+            override_rotation = false;
+            this->setRotation(old_rotation);
+        }
+    }
+};
+
+class $modify(EndLevelLayer) {
+    void showLayer(bool p0) {
+        EndLevelLayer::showLayer(p0);
+
+        if (uv::bot::recorder::recording) {
+            this->setVisible(!uv::bot::recorder::recording_options.hide_end_level_screen);
+            
+            level_ended = true;
+            level_end_point = std::chrono::steady_clock::now();
+        }
+        if (!this->isVisible()) this->setVisible(true);
     }
 };
 
@@ -88,17 +141,20 @@ class $modify(PlayLayer) {
         PlayLayer::resetLevel();
         uv::bot::reset();
     }
+
+    void loadFromCheckpoint(CheckpointObject *cp) {
+        PlayLayer::loadFromCheckpoint(cp);
+        
+        if (uv::hacks::practice_fix) {
+            uv::practice_fix::restore_playerobject(this->m_player1, static_cast<HookedCheckpointObject*>(cp)->m_fields->p1);
+            uv::practice_fix::restore_playerobject(this->m_player2, static_cast<HookedCheckpointObject*>(cp)->m_fields->p2);
+            override_rotation = true;
+        }
+    }
     
     void playEndAnimationToPos(cocos2d::CCPoint p1) {
-	PlayLayer::playEndAnimationToPos(p1);
-	uv::bot::current_state = uv::bot::state::none;
-    }
-
-    void loadFromCheckpoint(CheckpointObject* cp) {
-        PlayLayer::loadFromCheckpoint(cp);
-
-        uv::practice_fix::restore_playerobject(this->m_player1, static_cast<HookedCheckpointObject*>(cp)->m_fields->p1);
-        uv::practice_fix::restore_playerobject(this->m_player2, static_cast<HookedCheckpointObject*>(cp)->m_fields->p2);
+        PlayLayer::playEndAnimationToPos(p1);
+        uv::bot::current_state = uv::bot::state::none;
     }
 
     void destroyPlayer(PlayerObject *po, GameObject *go) {
@@ -108,7 +164,6 @@ class $modify(PlayLayer) {
 
     void updateProgressbar(void) {
         // 0166 -> Is "Show Hitboxes" option on?
-        // Basically, we don't want to update when the game updates
         if (uv::hacks::hitboxes && !this->m_isPracticeMode || !GameManager::get()->getGameVariable("0166")) PlayLayer::updateDebugDraw();
         this->m_debugDrawNode->setVisible(uv::hacks::hitboxes);
     }
@@ -167,7 +222,7 @@ class $modify(cocos2d::CCScheduler) {
 };
 
 class $modify(cocos2d::CCEGLView) {
-    void onGLFWKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    void onGLFWKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         CCEGLView::onGLFWKeyCallback(window, key, scancode, action, mods);
 
         if (action == GLFW_PRESS) {
@@ -175,7 +230,7 @@ class $modify(cocos2d::CCEGLView) {
                 uv::gui::toggle_time = std::chrono::steady_clock::now();
                 uv::gui::show = !uv::gui::show;
             }
-            if (key == GLFW_KEY_MINUS && uv::gui::show) uv::gui::debug = true;
+            if (key == GLFW_KEY_7 && mods == GLFW_MOD_CONTROL && uv::gui::show) uv::gui::debug = !uv::gui::debug;
         }
     }
 };

@@ -55,6 +55,24 @@ namespace uv {
         void clear();
         void save(std::string name);
         void load(std::string name);
+
+        namespace recorder {
+            struct options {
+                int width, height;
+                float fps, excess_render;
+                std::string codec, bitrate;
+                std::string output_path;
+                std::string custom_options;
+                bool hide_end_level_screen;
+            };
+
+            void start(options opt);
+            void update(void);
+            void end(void);
+
+            extern bool recording;
+            extern options recording_options;
+        }
     }
 
     namespace hacks {
@@ -64,13 +82,15 @@ namespace uv {
         extern bool hitboxes;
         extern float hitboxes_thickness;
         extern bool layout_mode;
+        extern bool practice_fix;
     }
     
     namespace practice_fix {
-        // I am surprised this works too
+        // Excuse my C-ness, I am a C engineer, not a C++ one
         struct checkpoint_data {
-            char data[sizeof(PlayerObject)];
-            double rotation;
+            double y_velocity;
+            float rotation;
+            cocos2d::CCPoint position;
         };
 
         checkpoint_data from_playerobject(PlayerObject *po);

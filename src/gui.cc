@@ -2,18 +2,45 @@
 #include <cmath>
 
 #include <imgui.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 #include "common.hh"
 
 namespace uv::gui {
     bool show = false;
     bool debug = false;
-
-    bool show_demo = false, show_style_editor = false;
-    
-    char macro_name[512];
     std::chrono::steady_clock::time_point toggle_time;
-    const std::chrono::steady_clock::duration animation_duration = std::chrono::milliseconds(150);
+    
+    static bool show_demo = false, show_style_editor = false;
+    
+    static std::string macro_name;
+    static const std::chrono::steady_clock::duration animation_duration = std::chrono::milliseconds(150);
+
+    static bool recording = false;
+
+    static const std::filesystem::path showcase_path = geode::Mod::get()->getSaveDir() / "Showcases";
+    static std::string video_name;
+    uv::bot::recorder::options render_opts = {
+        .width = 1920,
+        .height = 1080,
+        .fps = 60.0f,
+        .excess_render = 3.0f,
+        .codec = "libx264",
+        .bitrate = "50M",
+        .output_path = (showcase_path / ".mp4").string(),
+        .custom_options = "-pix_fmt yuv420p -vf \"vflip\"",
+        .hide_end_level_screen = true,
+    };
+
+    inline std::string trim_string(std::string s) {
+        s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+            return !std::isspace(ch);
+        }));
+        s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+            return !std::isspace(ch);
+        }).base(), s.end());
+        return s;
+    }
 
     void setup() {
         ImGuiIO &io = ImGui::GetIO();
@@ -32,7 +59,7 @@ namespace uv::gui {
         style.WindowPadding = ImVec2(12.0f, 8.0f);
         style.WindowRounding = 8.399999618530273f;
         style.WindowBorderSize = 1.0f;
-        style.WindowMinSize = ImVec2(32.0f, 32.0f);
+        style.WindowMinSize = ImVec2(200.0f, 100.0f);
         style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
         style.WindowMenuButtonPosition = ImGuiDir_None;
         style.ChildRounding = 3.0f;
@@ -49,6 +76,7 @@ namespace uv::gui {
         style.ColumnsMinSpacing = 6.0f;
         style.ScrollbarSize = 5.599999904632568f;
         style.ScrollbarRounding = 18.0f;
+        style.SeparatorTextBorderSize = 1.0f;
         style.GrabMinSize = 10.0f;
         style.GrabRounding = 3.0f;
         style.TabRounding = 3.0f;
@@ -87,9 +115,9 @@ namespace uv::gui {
         style.Colors[ImGuiCol_Separator]              = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
         style.Colors[ImGuiCol_SeparatorHovered]       = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
         style.Colors[ImGuiCol_SeparatorActive]        = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
-        style.Colors[ImGuiCol_ResizeGrip]             = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
-        style.Colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
-        style.Colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.30f, 0.30f, 0.30f, 1.00f);
+        style.Colors[ImGuiCol_ResizeGrip]             = ImVec4(0.22f, 0.22f, 0.22f, 0.00f);
+        style.Colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.25f, 0.25f, 0.25f, 0.00f);
+        style.Colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.30f, 0.30f, 0.30f, 0.00f);
         style.Colors[ImGuiCol_TabHovered]             = ImVec4(0.22f, 0.22f, 0.22f, 1.00f);
         style.Colors[ImGuiCol_Tab]                    = ImVec4(0.17f, 0.17f, 0.17f, 1.00f);
         style.Colors[ImGuiCol_TabSelected]            = ImVec4(0.25f, 0.25f, 0.25f, 1.00f);
@@ -138,7 +166,9 @@ namespace uv::gui {
             ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.13f, 0.23f, 0.13f, 1.0f));
         }
 
-        ImGui::Begin("uvBot");
+        if (uv::bot::current_state == uv::bot::state::recording) ImGui::Begin("uvBot - Recording###uvBot");
+        else if (uv::bot::current_state == uv::bot::state::playing) ImGui::Begin("uvBot - Playing###uvBot");
+        else ImGui::Begin("uvBot###uvBot");
 
         if (ImGui::BeginTabBar("uvBot TabBar")) {
             if (ImGui::BeginTabItem("Bot")) {
@@ -160,13 +190,17 @@ namespace uv::gui {
                 }
                 
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputTextWithHint("##Macro Name", "Macro Name", macro_name, 512);
+                ImGui::InputTextWithHint("##Macro Name", "Macro Name", &macro_name);
 
-                if (ImGui::Button("Save", { ImGui::GetContentRegionAvail().x / 3, 0 })) uv::bot::save(macro_name);
+                float button_widths = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2) / 3;
+                
+                ImGui::BeginDisabled(macro_name.empty());
+                if (ImGui::Button("Save", { button_widths, 0 })) uv::bot::save(trim_string(macro_name));
                 ImGui::SameLine();
-                if (ImGui::Button("Load", { ImGui::GetContentRegionAvail().x / 2, 0 })) uv::bot::load(macro_name);
+                if (ImGui::Button("Load", { button_widths, 0 })) uv::bot::load(trim_string(macro_name));
+                ImGui::EndDisabled();
                 ImGui::SameLine();
-                if (ImGui::Button("Clear", { ImGui::GetContentRegionAvail().x, 0 })) uv::bot::clear();
+                if (ImGui::Button("Clear", { button_widths, 0 })) uv::bot::clear();
  
                 ImGui::Text("Input Actions: %d/%d", uv::bot::current_input_action, uv::bot::input_actions.size());
                 ImGui::Text("Physic Actions:");
@@ -203,9 +237,78 @@ namespace uv::gui {
                 ImGui::Checkbox("Show Hitboxes", &uv::hacks::hitboxes);
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::DragFloat("##Hitboxes Thickness", &uv::hacks::hitboxes_thickness, 0.01f, 0.01f, 3.0f, "Hitboxes Thickness: %.2f", ImGuiSliderFlags_ClampOnInput);
+                ImGui::DragFloat("##Hitboxes Thickness", &uv::hacks::hitboxes_thickness, 0.01f, 0.01f, 3.0f, "Thickness: %.2f", ImGuiSliderFlags_ClampOnInput);
                 
                 ImGui::Checkbox("Layout Mode", &uv::hacks::layout_mode);
+                
+                ImGui::Checkbox("Practice Fix", &uv::hacks::practice_fix);
+                
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Recorder")) {
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                if (ImGui::InputTextWithHint("##Filename", "Video Filename (e.g. file.mp4)", &video_name)) {
+                    render_opts.output_path = (showcase_path / video_name).string();
+                }
+
+                // This is probably too overengineered but I don't care
+                
+                float space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("x").x - ImGui::CalcTextSize("@").x - ImGui::GetStyle().ItemSpacing.x * 4) / 3;
+                float integ;
+                float fract = std::modf(space_without_text, &integ);
+                
+                ImGui::SetNextItemWidth(integ);
+                ImGui::DragInt("##Width", &render_opts.width, 1, 1, 9999, "%upx");
+                ImGui::SameLine(); ImGui::Text("x"); ImGui::SameLine();
+                ImGui::SetNextItemWidth(fract >= 0.666f ? integ + 1 : integ);
+                ImGui::DragInt("##Height", &render_opts.height, 1, 1, 9999, "%upx");
+                ImGui::SameLine(); ImGui::Text("@"); ImGui::SameLine();
+                ImGui::SetNextItemWidth(fract >= 0.333f ? integ + 1 : integ);
+                ImGui::DragFloat("##FPS", &render_opts.fps, 1.0f, 1.0f, 9999.9f, "%.2f FPS");
+
+                ImGui::PushItemWidth(-ImGui::CalcTextSize("Custom Options").x - ImGui::GetStyle().WindowPadding.x); // The longest of them all
+                ImGui::InputText("Bitrate", &render_opts.bitrate);
+                ImGui::InputText("Video Codec", &render_opts.codec);
+                ImGui::InputText("Custom Options", &render_opts.custom_options);
+                ImGui::PopItemWidth();
+
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                ImGui::DragFloat("##Excess render", &render_opts.excess_render, 0.1f, 0.0f, 5.0f, "Render after level ends: %.1fs");
+
+                ImGui::Checkbox("Hide End Level menu", &render_opts.hide_end_level_screen);
+
+                space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 3) / 4;
+
+                // Thanks toby for bitrate values
+                
+                ImGui::SeparatorText("Presets");
+                if (ImGui::Button("720p", { space_without_text, 0 })) { render_opts.bitrate = "25M"; render_opts.width = 1280; render_opts.height = 720; }
+                ImGui::SameLine();
+                if (ImGui::Button("1080p", { space_without_text, 0 })) { render_opts.bitrate = "50M"; render_opts.width = 1920; render_opts.height = 1080; }
+                ImGui::SameLine();
+                if (ImGui::Button("2K", { space_without_text, 0 })) { render_opts.bitrate = "70M"; render_opts.width = 2560; render_opts.height = 1440; }
+                ImGui::SameLine();
+                if (ImGui::Button("4K", { space_without_text, 0 })) { render_opts.bitrate = "80M"; render_opts.width = 3840; render_opts.height = 2160; }
+                
+                if (ImGui::Button("30 FPS", { space_without_text, 0 })) render_opts.fps = 30.0f;
+                ImGui::SameLine();
+                if (ImGui::Button("60 FPS", { space_without_text, 0 })) render_opts.fps = 60.0f;
+                ImGui::SameLine();
+                if (ImGui::Button("90 FPS", { space_without_text, 0 })) render_opts.fps = 90.0f;
+                ImGui::SameLine();
+                if (ImGui::Button("120 FPS", { space_without_text, 0 })) render_opts.fps = 120.0f;
+
+                ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                
+                ImGui::BeginDisabled(video_name.empty());
+                recording = uv::bot::recorder::recording;
+                if (ImGui::Button(recording ? "Stop Recording" : "Start Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
+                    recording = !recording;
+                    if (recording) uv::bot::recorder::start(render_opts);
+                    else uv::bot::recorder::end();
+                }
+                ImGui::EndDisabled();
                 
                 ImGui::EndTabItem();
             }

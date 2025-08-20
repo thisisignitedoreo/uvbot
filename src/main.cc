@@ -7,9 +7,14 @@
 $on_mod(Loaded) {
     ImGuiCocos::get().setup(uv::gui::setup).draw(uv::gui::draw);
     
-    std::filesystem::path path = geode::Mod::get()->getSaveDir() / "Macros";
-    
-    if (!std::filesystem::is_directory(path) || !std::filesystem::exists(path)) {
-        std::filesystem::create_directory(path);
+    std::vector<std::filesystem::path> paths = {
+        geode::Mod::get()->getSaveDir() / "Macros",
+        geode::Mod::get()->getSaveDir() / "Showcases",
+    };
+
+    for (auto &path : paths) {
+        if (!std::filesystem::exists(path) || !std::filesystem::is_directory(path)) {
+            std::filesystem::create_directory(path);
+        }
     }
 }
