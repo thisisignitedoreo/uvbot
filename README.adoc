@@ -6,6 +6,10 @@ A free and open source TAS tool for Geometry Dash
 
 WARNING: You are kinda early. This is still in heavy development
 
+Features include:
+* Good accuracy (Hardest recorded level by me is Thinking Space II)
+* Standalone-ness (You don't need an additional mod menu to use this bot efficiently)
+
 == Quickstart
 Compile it or download from https://github.com/thisisignitedoreo/uvbot/actions[Actions]
 
@@ -27,6 +31,10 @@ struct input {
     // 3 - Jump P2
     // 4 - Left P2
     // 5 - Right P2
+    // Bits: [ U U U U B B B D ]
+    // U - unused
+    // B - button bits
+    // D - down bit
 };
 
 struct physic {
