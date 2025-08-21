@@ -71,4 +71,4 @@ create a fork, however, none of them will be accepted into upstream.
   and recorder implementation was taken
 * @tobyadd for GDH, from which a bit of hitboxes implementation was taken
 * @cvolton for Various Bugfixes from which both the hitboxes mirror fix
-  and the hitbox physics fix
+  and the hitbox physics fix were taken
