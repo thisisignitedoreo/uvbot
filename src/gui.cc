@@ -13,6 +13,7 @@ namespace uv::gui {
     
     static bool show_demo = false, show_style_editor = false;
     
+    static const std::filesystem::path macro_path = geode::Mod::get()->getSaveDir() / "Macros";
     static std::string macro_name;
     static const std::chrono::steady_clock::duration animation_duration = std::chrono::milliseconds(150);
 
@@ -31,6 +32,8 @@ namespace uv::gui {
         .custom_options = "-pix_fmt yuv420p -vf \"vflip\"",
         .hide_end_level_screen = true,
     };
+    
+    static const std::filesystem::path ffmpeg_path = "ffmpeg.exe"; // GD folder
 
     inline std::string trim_string(std::string s) {
         s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
@@ -196,11 +199,14 @@ namespace uv::gui {
                 
                 ImGui::BeginDisabled(macro_name.empty());
                 if (ImGui::Button("Save", { button_widths, 0 })) uv::bot::save(trim_string(macro_name));
+                if (macro_name.empty()) SetItemTooltip("To save a macro, input its name");
                 ImGui::SameLine();
                 if (ImGui::Button("Load", { button_widths, 0 })) uv::bot::load(trim_string(macro_name));
+                if (macro_name.empty()) SetItemTooltip("To load a macro, input its name");
                 ImGui::EndDisabled();
                 ImGui::SameLine();
                 if (ImGui::Button("Clear", { button_widths, 0 })) uv::bot::clear();
+                if (ImGui::Button("Open Macros folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(macro_path);
  
                 ImGui::Text("Input Actions: %d/%d", uv::bot::current_input_action, uv::bot::input_actions.size());
                 ImGui::Text("Physic Actions:");
@@ -247,68 +253,80 @@ namespace uv::gui {
             }
 
             if (ImGui::BeginTabItem("Recorder")) {
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                if (ImGui::InputTextWithHint("##Filename", "Video Filename (e.g. file.mp4)", &video_name)) {
-                    render_opts.output_path = (showcase_path / video_name).string();
+                if (!std::filesystem::is_regular_file(ffmpeg_path) || !std::filesystem::exists(ffmpeg_path)) {
+                    ImGui::PushTextWrapPos(0.0f);
+                    ImGui::Text("For the internal recorder feature to work, you need to copy ffmpeg.exe to Geometry Dash installation path.");
+                    
+                    ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                    if (ImGui::Button("Open GD folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(std::filesystem::current_path());
+                    ImGui::PopTextWrapPos();
+                } else {
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                    if (ImGui::InputTextWithHint("##Filename", "Video Filename (e.g. file.mp4)", &video_name)) {
+                        render_opts.output_path = (showcase_path / video_name).string();
+                    }
+
+                    // This is probably too overengineered but I don't care
+                    
+                    float space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("x").x - ImGui::CalcTextSize("@").x - ImGui::GetStyle().ItemSpacing.x * 4) / 3;
+                    float integ;
+                    float fract = std::modf(space_without_text, &integ);
+                    
+                    ImGui::SetNextItemWidth(integ);
+                    ImGui::DragInt("##Width", &render_opts.width, 1, 1, 9999, "%upx");
+                    ImGui::SameLine(); ImGui::Text("x"); ImGui::SameLine();
+                    ImGui::SetNextItemWidth(fract >= 0.666f ? integ + 1 : integ);
+                    ImGui::DragInt("##Height", &render_opts.height, 1, 1, 9999, "%upx");
+                    ImGui::SameLine(); ImGui::Text("@"); ImGui::SameLine();
+                    ImGui::SetNextItemWidth(fract >= 0.333f ? integ + 1 : integ);
+                    ImGui::DragFloat("##FPS", &render_opts.fps, 1.0f, 1.0f, 9999.9f, "%.2f FPS");
+
+                    ImGui::PushItemWidth(-ImGui::CalcTextSize("Custom Options").x - ImGui::GetStyle().WindowPadding.x); // The longest of them all
+                    ImGui::InputText("Bitrate", &render_opts.bitrate);
+                    ImGui::InputText("Video Codec", &render_opts.codec);
+                    ImGui::InputText("Custom Options", &render_opts.custom_options);
+                    ImGui::PopItemWidth();
+
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                    ImGui::DragFloat("##Excess render", &render_opts.excess_render, 0.1f, 0.0f, 5.0f, "Render after level ends: %.1fs");
+
+                    ImGui::Checkbox("Hide End Level menu", &render_opts.hide_end_level_screen);
+                    if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
+
+                    space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 3) / 4;
+
+                    // Thanks toby for bitrate values
+                    
+                    ImGui::SeparatorText("Presets");
+                    if (ImGui::Button("720p", { space_without_text, 0 })) { render_opts.bitrate = "25M"; render_opts.width = 1280; render_opts.height = 720; }
+                    ImGui::SameLine();
+                    if (ImGui::Button("1080p", { space_without_text, 0 })) { render_opts.bitrate = "50M"; render_opts.width = 1920; render_opts.height = 1080; }
+                    ImGui::SameLine();
+                    if (ImGui::Button("2K", { space_without_text, 0 })) { render_opts.bitrate = "70M"; render_opts.width = 2560; render_opts.height = 1440; }
+                    ImGui::SameLine();
+                    if (ImGui::Button("4K", { space_without_text, 0 })) { render_opts.bitrate = "80M"; render_opts.width = 3840; render_opts.height = 2160; }
+                    
+                    if (ImGui::Button("30 FPS", { space_without_text, 0 })) render_opts.fps = 30.0f;
+                    ImGui::SameLine();
+                    if (ImGui::Button("60 FPS", { space_without_text, 0 })) render_opts.fps = 60.0f;
+                    ImGui::SameLine();
+                    if (ImGui::Button("90 FPS", { space_without_text, 0 })) render_opts.fps = 90.0f;
+                    ImGui::SameLine();
+                    if (ImGui::Button("120 FPS", { space_without_text, 0 })) render_opts.fps = 120.0f;
+
+                    ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                    
+                    ImGui::BeginDisabled(video_name.empty());
+                    recording = uv::bot::recorder::recording;
+                    if (ImGui::Button(recording ? "Stop Recording" : "Start Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
+                        recording = !recording;
+                        if (recording) uv::bot::recorder::start(render_opts);
+                        else uv::bot::recorder::end();
+                    }
+                    ImGui::EndDisabled();
+
+                    if (video_name.empty()) SetItemTooltip("To start rendering, input the video filename");
                 }
-
-                // This is probably too overengineered but I don't care
-                
-                float space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("x").x - ImGui::CalcTextSize("@").x - ImGui::GetStyle().ItemSpacing.x * 4) / 3;
-                float integ;
-                float fract = std::modf(space_without_text, &integ);
-                
-                ImGui::SetNextItemWidth(integ);
-                ImGui::DragInt("##Width", &render_opts.width, 1, 1, 9999, "%upx");
-                ImGui::SameLine(); ImGui::Text("x"); ImGui::SameLine();
-                ImGui::SetNextItemWidth(fract >= 0.666f ? integ + 1 : integ);
-                ImGui::DragInt("##Height", &render_opts.height, 1, 1, 9999, "%upx");
-                ImGui::SameLine(); ImGui::Text("@"); ImGui::SameLine();
-                ImGui::SetNextItemWidth(fract >= 0.333f ? integ + 1 : integ);
-                ImGui::DragFloat("##FPS", &render_opts.fps, 1.0f, 1.0f, 9999.9f, "%.2f FPS");
-
-                ImGui::PushItemWidth(-ImGui::CalcTextSize("Custom Options").x - ImGui::GetStyle().WindowPadding.x); // The longest of them all
-                ImGui::InputText("Bitrate", &render_opts.bitrate);
-                ImGui::InputText("Video Codec", &render_opts.codec);
-                ImGui::InputText("Custom Options", &render_opts.custom_options);
-                ImGui::PopItemWidth();
-
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::DragFloat("##Excess render", &render_opts.excess_render, 0.1f, 0.0f, 5.0f, "Render after level ends: %.1fs");
-
-                ImGui::Checkbox("Hide End Level menu", &render_opts.hide_end_level_screen);
-
-                space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 3) / 4;
-
-                // Thanks toby for bitrate values
-                
-                ImGui::SeparatorText("Presets");
-                if (ImGui::Button("720p", { space_without_text, 0 })) { render_opts.bitrate = "25M"; render_opts.width = 1280; render_opts.height = 720; }
-                ImGui::SameLine();
-                if (ImGui::Button("1080p", { space_without_text, 0 })) { render_opts.bitrate = "50M"; render_opts.width = 1920; render_opts.height = 1080; }
-                ImGui::SameLine();
-                if (ImGui::Button("2K", { space_without_text, 0 })) { render_opts.bitrate = "70M"; render_opts.width = 2560; render_opts.height = 1440; }
-                ImGui::SameLine();
-                if (ImGui::Button("4K", { space_without_text, 0 })) { render_opts.bitrate = "80M"; render_opts.width = 3840; render_opts.height = 2160; }
-                
-                if (ImGui::Button("30 FPS", { space_without_text, 0 })) render_opts.fps = 30.0f;
-                ImGui::SameLine();
-                if (ImGui::Button("60 FPS", { space_without_text, 0 })) render_opts.fps = 60.0f;
-                ImGui::SameLine();
-                if (ImGui::Button("90 FPS", { space_without_text, 0 })) render_opts.fps = 90.0f;
-                ImGui::SameLine();
-                if (ImGui::Button("120 FPS", { space_without_text, 0 })) render_opts.fps = 120.0f;
-
-                ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
-                
-                ImGui::BeginDisabled(video_name.empty());
-                recording = uv::bot::recorder::recording;
-                if (ImGui::Button(recording ? "Stop Recording" : "Start Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
-                    recording = !recording;
-                    if (recording) uv::bot::recorder::start(render_opts);
-                    else uv::bot::recorder::end();
-                }
-                ImGui::EndDisabled();
                 
                 ImGui::EndTabItem();
             }

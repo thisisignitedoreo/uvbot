@@ -81,6 +81,11 @@ namespace subprocess {
             return exit_code;
         }
 
+        bool has_exited() {
+            bool exited = WaitForSingleObject(m_proc_info.hProcess, 0) == WAIT_OBJECT_0;
+            return exit_code;
+        }
+
         int close(bool should_wait = true) {
             int exit_code = 0;
             m_stdin.close();

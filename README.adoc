@@ -64,3 +64,11 @@ undebuggable bug.
 
 If you want to have a version with your modifications - feel free to
 create a fork, however, none of them will be accepted into upstream.
+
+== Thanks to
+
+* @matcool for ReplayBot, from which both the `subprocess.hpp` header
+  and recorder implementation was taken
+* @tobyadd for GDH, from which a bit of hitboxes implementation was taken
+* @cvolton for Various Bugfixes from which both the hitboxes mirror fix
+  and the hitbox physics fix

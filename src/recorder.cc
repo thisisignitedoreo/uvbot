@@ -85,7 +85,7 @@ namespace uv::bot::recorder {
 
         std::thread([&, opt]() {
             std::vector<std::string> cmd = {
-                "C:/Users/aciddev_/Development/Ware/ffmpeg/ffmpeg.exe", "-y",
+                "ffmpeg.exe", "-y",
                 "-f", "rawvideo", "-pix_fmt", "rgb24",
                 "-s", fmt::format("{}x{}", opt.width, opt.height),
                 "-r", std::to_string(opt.fps),
@@ -106,7 +106,7 @@ namespace uv::bot::recorder {
             command += " \"" + opt.output_path + "\"";
             
             auto process = subprocess::Popen(command);
-            while (recording || frame_has_data) {
+            while ((recording || frame_has_data) && !process.has_exited()) {
                 mutex.lock();
                 if (frame_has_data) {
                     process.m_stdin.write(frame_buffer, opt.width * opt.height * 3);
@@ -114,10 +114,7 @@ namespace uv::bot::recorder {
                 }
                 mutex.unlock();
             }
-            geode::log::debug("Waiting for FFmpeg to exit");
-            if (process.close()) {
-                geode::log::debug("FFmpeg crashed");
-            } else geode::log::debug("FFmpeg finished successfully");
+            process.close();
         }).detach();
     }
 
