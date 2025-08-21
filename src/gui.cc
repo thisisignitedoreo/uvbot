@@ -62,7 +62,7 @@ namespace uv::gui {
         style.WindowPadding = ImVec2(12.0f, 8.0f);
         style.WindowRounding = 8.399999618530273f;
         style.WindowBorderSize = 1.0f;
-        style.WindowMinSize = ImVec2(200.0f, 100.0f);
+        style.WindowMinSize = ImVec2(400.0f, 200.0f);
         style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
         style.WindowMenuButtonPosition = ImGuiDir_None;
         style.ChildRounding = 3.0f;
@@ -199,10 +199,10 @@ namespace uv::gui {
                 
                 ImGui::BeginDisabled(macro_name.empty());
                 if (ImGui::Button("Save", { button_widths, 0 })) uv::bot::save(trim_string(macro_name));
-                if (macro_name.empty()) SetItemTooltip("To save a macro, input its name");
+                if (macro_name.empty()) ImGui::SetItemTooltip("To save a macro, input its name");
                 ImGui::SameLine();
                 if (ImGui::Button("Load", { button_widths, 0 })) uv::bot::load(trim_string(macro_name));
-                if (macro_name.empty()) SetItemTooltip("To load a macro, input its name");
+                if (macro_name.empty()) ImGui::SetItemTooltip("To load a macro, input its name");
                 ImGui::EndDisabled();
                 ImGui::SameLine();
                 if (ImGui::Button("Clear", { button_widths, 0 })) uv::bot::clear();
@@ -325,7 +325,7 @@ namespace uv::gui {
                     }
                     ImGui::EndDisabled();
 
-                    if (video_name.empty()) SetItemTooltip("To start rendering, input the video filename");
+                    if (video_name.empty()) ImGui::SetItemTooltip("To start rendering, input the video filename");
                 }
                 
                 ImGui::EndTabItem();
