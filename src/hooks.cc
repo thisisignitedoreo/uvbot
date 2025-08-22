@@ -1,3 +1,4 @@
+#include <sstream>
 #include <cstring>
 #include <chrono>
 
@@ -6,9 +7,11 @@
 #include <Geode/modify/GJBaseGameLayer.hpp>
 #include <Geode/modify/CheckpointObject.hpp>
 #include <Geode/modify/PlayLayer.hpp>
+#include <Geode/modify/UILayer.hpp>
 #include <Geode/modify/GameObject.hpp>
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/EndLevelLayer.hpp>
+#include <Geode/modify/FMODAudioEngine.hpp>
 #include <Geode/modify/CCScheduler.hpp>
 #include <Geode/modify/CCEGLView.hpp>
 #include <Geode/modify/CCDrawNode.hpp>
@@ -17,8 +20,9 @@
 
 static bool debug_update = false;
 static bool override_rotation = false;
-static bool level_ended = false;
-static std::chrono::steady_clock::time_point level_end_point;
+// static bool level_ended = false;
+// static std::chrono::steady_clock::time_point level_end_point;
+// static EndLevelLayer *ell;
 
 class $modify(GJBaseGameLayer) {
     void handleButton(bool down, int button, bool isPlayer1) {
@@ -28,11 +32,32 @@ class $modify(GJBaseGameLayer) {
     }
     
     void processCommands(float dt) {
+        /*
+        if (uv::bot::recorder::audio::recording) {
+            if (level_ended) {
+                std::chrono::steady_clock::duration excess_amount(std::chrono::milliseconds(static_cast<long long>(uv::bot::recorder::audio::recording_options.excess_render * 1000)));
+                if (std::chrono::steady_clock::now() - level_end_point >= excess_amount) {
+                    level_ended = false;
+                    uv::bot::recorder::audio::end();
+                    if (uv::bot::recorder::audio::recording_options.merge_audio) {
+                        geode::log::debug("Merging audio");
+                        std::stringstream output;
+                        std::string input_video = uv::bot::recorder::recording_options.output_path;
+                        output << input_video.substr(0, input_video.rfind(".")) << " +Music";
+                        output << input_video.substr(input_video.rfind("."), input_video.size());
+                        uv::bot::recorder::merge(input_video, (geode::dirs::getGameDir() / "fmodoutput.wav").string(), output.str());
+                    }
+                }
+            }
+        }
+        */
+        
         GJBaseGameLayer::processCommands(dt);
         uv::bot::update_input(this, dt);
     }
     
     void update(float dt) {
+        /*
         if (uv::bot::recorder::recording) {
             uv::bot::recorder::update();
             if (level_ended) {
@@ -40,9 +65,17 @@ class $modify(GJBaseGameLayer) {
                 if (std::chrono::steady_clock::now() - level_end_point >= excess_amount) {
                     level_ended = false;
                     uv::bot::recorder::end();
+                    PlayLayer *pl = PlayLayer::get();
+                    if (pl && uv::bot::recorder::audio::recording) {
+                        ell->exitLayer(nullptr);
+                        pl->resetLevel();
+                        uv::bot::recorder::audio::start();
+                    }
                 }
             }
         }
+        */
+        
         GJBaseGameLayer::update(dt);
         uv::bot::update_physics(this, dt);
     }
@@ -75,15 +108,34 @@ class $modify(GJBaseGameLayer) {
             this->m_debugDrawNode->drawPolygon(anticheat_spike, 4, blank, 0, red);
         }
     }
+
+    // Thanks toby
+    void updateColor(cocos2d::ccColor3B &color, float fadeTime, int colorID, bool blending, float opacity, cocos2d::ccHSVValue &copyHSV, int colorIDToCopy, bool copyOpacity, EffectGameObject *callerObject, int unk1, int unk2) {
+        PlayLayer *pl = PlayLayer::get();
+        if (!pl) return GJBaseGameLayer::updateColor(color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
+        
+        if (uv::hacks::layout_mode) {
+            if (colorID == 1000) color = {0, 0, 0};
+            else if (colorID == 1001) color = {0, 0, 0};
+            else if (colorID == 1002) color = {255, 255, 255};
+            else if (colorID == 1013 || colorID == 1014) color = {0, 0, 0};
+            else color = {255, 255, 255};
+        }
+
+        GJBaseGameLayer::updateColor(color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
+    }
 };
 
 class $modify(cocos2d::CCScheduler) {
     void update(float dt) {
+        /*
         if (uv::bot::recorder::recording) {
             CCScheduler::update(1.0f / uv::bot::recorder::recording_options.fps);
         } else {
             CCScheduler::update(dt);
         }
+        */
+        CCScheduler::update(dt);
     }
 };
 
@@ -126,13 +178,30 @@ class $modify(EndLevelLayer) {
     void showLayer(bool p0) {
         EndLevelLayer::showLayer(p0);
 
-        if (uv::bot::recorder::recording) {
-            this->setVisible(!uv::bot::recorder::recording_options.hide_end_level_screen);
-            
+        /*
+        if (uv::bot::recorder::recording || uv::bot::recorder::audio::recording) {
             level_ended = true;
             level_end_point = std::chrono::steady_clock::now();
+            ell = this;
         }
-        if (!this->isVisible()) this->setVisible(true);
+        */
+    }
+
+    void customSetup(void) {
+        EndLevelLayer::customSetup();
+
+        /*
+        if (uv::bot::recorder::recording) {
+            this->setVisible(!uv::bot::recorder::recording_options.hide_end_level_screen);
+        } else if (!this->isVisible()) this->setVisible(true);
+        */
+    }
+};
+
+class $modify(FMODAudioEngine) {
+    int playEffect(gd::string path, float speed, float p2, float volume) {
+        // if (uv::bot::recorder::audio::recording && (path == "explode_11.ogg" || path == "playSound_01.ogg")) return 0;
+        return FMODAudioEngine::playEffect(path, speed, p2, volume);
     }
 };
 
@@ -154,7 +223,7 @@ class $modify(PlayLayer) {
     
     void playEndAnimationToPos(cocos2d::CCPoint p1) {
         PlayLayer::playEndAnimationToPos(p1);
-        uv::bot::current_state = uv::bot::state::none;
+        if (uv::bot::current_state == uv::bot::state::recording) uv::bot::current_state = uv::bot::state::none;
     }
 
     void destroyPlayer(PlayerObject *po, GameObject *go) {
@@ -172,16 +241,48 @@ class $modify(PlayLayer) {
 
     void addObject(GameObject *obj) {
         if (uv::hacks::layout_mode) {
-            obj->m_activeMainColorID = -1;
-            obj->m_activeDetailColorID = -1;
             obj->m_detailUsesHSV = false;
             obj->m_baseUsesHSV = false;
             obj->setOpacity(255);
             obj->setVisible(true);
             
             switch (obj->m_objectID) {
-            case 1007: // Alpha
-            case 1520: // Shake
+            // Thanks toby
+            case 899:
+            case 900:
+            case 29:
+            case 30:
+            case 104:
+            case 105:
+            case 221:
+            case 717:
+            case 718:
+            case 743:
+            case 744:
+            case 915:
+            case 1006:
+            case 1007:
+            case 1520:
+            case 2903:
+            case 3029:
+            case 3030:
+            case 3031:
+            case 2999:
+            case 3606:
+            case 3612:
+            case 3010:
+            case 3015:
+            case 3021:
+            case 3009:
+            case 3014:
+            case 3020:
+            case 1818:
+            case 1819:
+            case 33:
+            case 32:
+            case 1613:
+            case 1612:
+            case 3608:
                 return;
             }
         }
@@ -190,10 +291,27 @@ class $modify(PlayLayer) {
     }
 };
 
+// Thanks toby
+class $modify(UILayer) {
+    bool init(GJBaseGameLayer *p0) {
+        if (!UILayer::init(p0)) return false;
+        
+        /*
+        if (!uv::bot::recorder::recording) return true;
+        
+        cocos2d::CCMenu *menu = getChildByType<cocos2d::CCMenu>(0);
+        CCMenuItemSpriteExtra *btn = menu->getChildByType<CCMenuItemSpriteExtra>(0);
+
+        if (menu && btn) btn->getNormalImage()->setVisible(false);
+        */
+
+        return true;
+    }
+};
+
 class $modify(GameObject) {
     void addGlow(gd::string p0) {
-        GameObject::addGlow(p0);
-
+        if (uv::hacks::layout_mode) GameObject::addGlow(p0);
         if (uv::hacks::layout_mode && this->m_objectType == GameObjectType::Decoration) this->m_isHide = true;
     }
 

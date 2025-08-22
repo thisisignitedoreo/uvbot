@@ -69,6 +69,6 @@ create a fork, however, none of them will be accepted into upstream.
 
 * @matcool for ReplayBot, from which both the `subprocess.hpp` header
   and recorder implementation was taken
-* @tobyadd for GDH, from which a bit of hitboxes implementation was taken
+* @tobyadd for GDH for a _lot_ of stuff (`grep -rn "// Thanks toby" src/ | wc -l`)
 * @cvolton for Various Bugfixes from which both the hitboxes mirror fix
   and the hitbox physics fix were taken

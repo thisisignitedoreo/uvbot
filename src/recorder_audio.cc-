@@ -1,0 +1,51 @@
+#include "common.hh"
+
+namespace uv::bot::recorder::audio {
+    bool recording = false;
+    options recording_options;
+
+    float original_music_volume, original_sfx_volume;
+
+    void init(options opt) {
+        recording_options = opt;
+        recording = true;
+        
+        FMODAudioEngine *fmod = FMODAudioEngine::sharedEngine();
+        
+        fmod->m_backgroundMusicChannel->getVolume(&original_music_volume);
+        fmod->m_globalChannel->getVolume(&original_sfx_volume);
+
+        fmod->m_backgroundMusicChannel->setVolume(opt.music_volume);
+        fmod->m_globalChannel->setVolume(opt.sfx_volume);
+    }
+
+    void start(void) {
+        FMODAudioEngine *fmod = FMODAudioEngine::sharedEngine();
+        
+        fmod->m_system->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
+    }
+    
+    void end(void) {
+        recording = false;
+        FMODAudioEngine *fmod = FMODAudioEngine::sharedEngine();
+
+        fmod->m_system->setOutput(FMOD_OUTPUTTYPE_AUTODETECT);
+
+        fmod->m_backgroundMusicChannel->setVolume(original_music_volume);
+        fmod->m_globalChannel->setVolume(original_sfx_volume);
+
+        if (!recording_options.merge_audio) {
+            std::error_code error;
+            
+            std::filesystem::path fmod_output = geode::dirs::getGameDir() / "fmodoutput.wav";
+            if (std::filesystem::exists(fmod_output, error)) {
+                std::filesystem::copy(fmod_output, recording_options.output_path, error);
+                
+                if (error) geode::log::warn("Error copying fmodoutput.wav: {}", error.message());
+                error.clear();
+            }
+            
+            if (error) geode::log::warn("Error grasping the fact that fmodoutput.wav doesn't exist: {}", error.message());
+        }
+    }
+}

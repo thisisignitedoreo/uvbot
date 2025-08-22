@@ -13,14 +13,17 @@ namespace uv::gui {
     
     static bool show_demo = false, show_style_editor = false;
     
+    static std::string macro_name/*, video_name, audio_name*/;
+
     static const std::filesystem::path macro_path = geode::Mod::get()->getSaveDir() / "Macros";
-    static std::string macro_name;
+    // static const std::filesystem::path showcase_path = geode::Mod::get()->getSaveDir() / "Showcases";
+    
     static const std::chrono::steady_clock::duration animation_duration = std::chrono::milliseconds(150);
 
-    static bool recording = false;
+    // static bool recording = false;
+    // static bool record_audio = false, merge_audio = false;
 
-    static const std::filesystem::path showcase_path = geode::Mod::get()->getSaveDir() / "Showcases";
-    static std::string video_name;
+    /*
     uv::bot::recorder::options render_opts = {
         .width = 1920,
         .height = 1080,
@@ -33,7 +36,16 @@ namespace uv::gui {
         .hide_end_level_screen = true,
     };
     
-    static const std::filesystem::path ffmpeg_path = "ffmpeg.exe"; // GD folder
+    uv::bot::recorder::audio::options audio_opts = {
+        .output_path = (showcase_path / ".wav").string(),
+        .music_volume = 1.0f,
+        .sfx_volume = 1.0f,
+        .excess_render = 3.0f,
+        .merge_audio = false,
+    };
+    
+    static const std::filesystem::path ffmpeg_path = geode::dirs::getGameDir() / "ffmpeg.exe";
+    */
 
     inline std::string trim_string(std::string s) {
         s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
@@ -45,7 +57,7 @@ namespace uv::gui {
         return s;
     }
 
-    void setup() {
+    void setup(void) {
         ImGuiIO &io = ImGui::GetIO();
         ImGuiStyle &style = ImGui::GetStyle();
 
@@ -58,9 +70,9 @@ namespace uv::gui {
         // And some small changes
         
         style.Alpha = 1.0f;
-        style.DisabledAlpha = 0.6000000238418579f;
+        style.DisabledAlpha = 0.6f;
         style.WindowPadding = ImVec2(12.0f, 8.0f);
-        style.WindowRounding = 8.399999618530273f;
+        style.WindowRounding = 8.4f;
         style.WindowBorderSize = 1.0f;
         style.WindowMinSize = ImVec2(400.0f, 200.0f);
         style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
@@ -77,9 +89,10 @@ namespace uv::gui {
         style.CellPadding = ImVec2(4.0f, 2.0f);
         style.IndentSpacing = 21.0f;
         style.ColumnsMinSpacing = 6.0f;
-        style.ScrollbarSize = 5.599999904632568f;
+        style.ScrollbarSize = 5.6f;
         style.ScrollbarRounding = 18.0f;
         style.SeparatorTextBorderSize = 1.0f;
+        style.SeparatorTextAlign = ImVec2(0.5f, 0.5f);
         style.GrabMinSize = 10.0f;
         style.GrabRounding = 3.0f;
         style.TabRounding = 3.0f;
@@ -146,7 +159,7 @@ namespace uv::gui {
         style.Colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
     }
 
-    void draw() {
+    void draw(void) {
         bool animating = std::chrono::steady_clock::now() - toggle_time < animation_duration;
         if (!show && !animating) return;
 
@@ -252,17 +265,19 @@ namespace uv::gui {
                 ImGui::EndTabItem();
             }
 
+            /*
             if (ImGui::BeginTabItem("Recorder")) {
-                if (!std::filesystem::is_regular_file(ffmpeg_path) || !std::filesystem::exists(ffmpeg_path)) {
+                std::error_code error;
+                if (!std::filesystem::is_regular_file(ffmpeg_path, error) || !std::filesystem::exists(ffmpeg_path, error)) {
                     ImGui::PushTextWrapPos(0.0f);
                     ImGui::Text("For the internal recorder feature to work, you need to copy ffmpeg.exe to Geometry Dash installation path.");
                     
                     ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
-                    if (ImGui::Button("Open GD folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(std::filesystem::current_path());
+                    if (ImGui::Button("Open GD folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(geode::dirs::getGameDir());
                     ImGui::PopTextWrapPos();
                 } else {
                     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                    if (ImGui::InputTextWithHint("##Filename", "Video Filename (e.g. file.mp4)", &video_name)) {
+                    if (ImGui::InputTextWithHint("##Video Filename", "Video Filename (e.g. file.mp4)", &video_name)) {
                         render_opts.output_path = (showcase_path / video_name).string();
                     }
 
@@ -289,15 +304,42 @@ namespace uv::gui {
 
                     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                     ImGui::DragFloat("##Excess render", &render_opts.excess_render, 0.1f, 0.0f, 5.0f, "Render after level ends: %.1fs");
+                    audio_opts.excess_render = render_opts.excess_render;
 
                     ImGui::Checkbox("Hide End Level menu", &render_opts.hide_end_level_screen);
                     if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
 
                     space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 3) / 4;
 
+                    ImGui::SeparatorText("Audio");
+
+                    ImGui::Checkbox("Record Audio", &record_audio);
+                    ImGui::SameLine();
+                    ImGui::Checkbox("Merge", &merge_audio);
+                    audio_opts.merge_audio = merge_audio;
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("?");
+
+                    ImGui::SetItemTooltip("Audio will be recorded on the next attempt\nMerging will automatically combine video and audio when both are done");
+
+                    if (record_audio && !merge_audio) {
+                        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                        if (ImGui::InputTextWithHint("##Audio Filename", "Audio Filename (e.g. file.wav)", &audio_name)) {
+                            audio_opts.output_path = (showcase_path / video_name).string();
+                        }
+                    }
+
+                    if (record_audio) {
+                        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                        ImGui::DragFloat("##Music volume", &audio_opts.music_volume, 0.01f, 0.0f, 1.0f, "Music volume: %.2f", ImGuiSliderFlags_AlwaysClamp);
+                        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                        ImGui::DragFloat("##SFX volume", &audio_opts.sfx_volume, 0.01f, 0.0f, 1.0f, "SFX volume: %.2f", ImGuiSliderFlags_AlwaysClamp);
+                    }
+
                     // Thanks toby for bitrate values
                     
                     ImGui::SeparatorText("Presets");
+                    
                     if (ImGui::Button("720p", { space_without_text, 0 })) { render_opts.bitrate = "25M"; render_opts.width = 1280; render_opts.height = 720; }
                     ImGui::SameLine();
                     if (ImGui::Button("1080p", { space_without_text, 0 })) { render_opts.bitrate = "50M"; render_opts.width = 1920; render_opts.height = 1080; }
@@ -313,23 +355,34 @@ namespace uv::gui {
                     if (ImGui::Button("90 FPS", { space_without_text, 0 })) render_opts.fps = 90.0f;
                     ImGui::SameLine();
                     if (ImGui::Button("120 FPS", { space_without_text, 0 })) render_opts.fps = 120.0f;
-
+                    
                     ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
                     
-                    ImGui::BeginDisabled(video_name.empty());
+                    ImGui::BeginDisabled(video_name.empty() || (record_audio && !merge_audio && audio_name.empty()) || (record_audio && !merge_audio && !audio_name.empty() && !audio_name.ends_with(".wav")));
                     recording = uv::bot::recorder::recording;
                     if (ImGui::Button(recording ? "Stop Recording" : "Start Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
                         recording = !recording;
-                        if (recording) uv::bot::recorder::start(render_opts);
-                        else uv::bot::recorder::end();
+                        if (recording) {
+                            uv::bot::recorder::start(render_opts);
+                            if (record_audio) uv::bot::recorder::audio::init(audio_opts);
+                        } else {
+                            uv::bot::recorder::end();
+                            if (record_audio) uv::bot::recorder::audio::end();
+                        }
                     }
                     ImGui::EndDisabled();
 
-                    if (video_name.empty()) ImGui::SetItemTooltip("To start rendering, input the video filename");
+                    if (ImGui::BeginItemTooltip()) {
+                        if (video_name.empty()) ImGui::Text("Input the video filename");
+                        if (record_audio && !merge_audio && audio_name.empty()) ImGui::Text("Input the audio filename");
+                        if (record_audio && !merge_audio && !audio_name.empty() && !audio_name.ends_with(".wav")) ImGui::Text("Audio can only be in .wav format");
+                        ImGui::EndTooltip();
+                    }
                 }
                 
                 ImGui::EndTabItem();
             }
+            */
 
             if (ImGui::BeginTabItem("About")) {
                 ImGui::SeparatorText("About uvBot");
@@ -359,6 +412,9 @@ namespace uv::gui {
             if (debug && ImGui::BeginTabItem("Debug")) {
                 if (ImGui::Button(show_demo ? "Hide Demo window" : "Show Demo window")) show_demo = !show_demo;
                 if (ImGui::Button(show_style_editor ? "Hide Style Editor window" : "Show Style Editor window")) show_style_editor = !show_style_editor;
+
+                if (ImGui::Button("WAVWRITER")) FMODAudioEngine::sharedEngine()->m_system->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
+                if (ImGui::Button("AUTODETECT")) FMODAudioEngine::sharedEngine()->m_system->setOutput(FMOD_OUTPUTTYPE_AUTODETECT);
                 
                 ImGui::EndTabItem();
             }

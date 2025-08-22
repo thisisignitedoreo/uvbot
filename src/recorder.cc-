@@ -85,7 +85,7 @@ namespace uv::bot::recorder {
 
         std::thread([&, opt]() {
             std::vector<std::string> cmd = {
-                "ffmpeg.exe", "-y",
+                (geode::dirs::getGameDir() / "ffmpeg.exe").string(), "-y",
                 "-f", "rawvideo", "-pix_fmt", "rgb24",
                 "-s", fmt::format("{}x{}", opt.width, opt.height),
                 "-r", std::to_string(opt.fps),
@@ -129,5 +129,20 @@ namespace uv::bot::recorder {
         frame_buffer = nullptr;
         recording = false;
         end_rt();
+    }
+
+    void merge(std::string video, std::string audio, std::string output) {
+        std::vector<std::string> cmd = {
+            (geode::dirs::getGameDir() / "ffmpeg.exe").string(), "-y",
+            "-i", video, "-i", audio,
+            "-map", "0:v:0", "-map", "1:a:0",
+            "-c", "copy",
+            output,
+        };
+        
+        std::string command = fmt::format("\"{}\"", fmt::join(cmd, "\" \""));
+        
+        auto process = subprocess::Popen(command);
+        process.close();
     }
 }

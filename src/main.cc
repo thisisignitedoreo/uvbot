@@ -12,8 +12,10 @@ $on_mod(Loaded) {
         geode::Mod::get()->getSaveDir() / "Showcases",
     };
 
+    std::error_code error;
+
     for (auto &path : paths) {
-        if (!std::filesystem::exists(path) || !std::filesystem::is_directory(path)) {
+        if (!std::filesystem::exists(path, error) || !std::filesystem::is_directory(path, error)) {
             std::filesystem::create_directory(path);
         }
     }
