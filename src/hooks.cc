@@ -12,6 +12,7 @@
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/EndLevelLayer.hpp>
 #include <Geode/modify/FMODAudioEngine.hpp>
+#include <Geode/modify/CCDirector.hpp>
 #include <Geode/modify/CCScheduler.hpp>
 #include <Geode/modify/CCEGLView.hpp>
 #include <Geode/modify/CCDrawNode.hpp>
@@ -23,6 +24,8 @@ static bool override_rotation = false;
 // static bool level_ended = false;
 // static std::chrono::steady_clock::time_point level_end_point;
 // static EndLevelLayer *ell;
+static std::chrono::steady_clock::time_point last_time, now;
+static std::chrono::steady_clock::duration accumulator;
 
 class $modify(GJBaseGameLayer) {
     void handleButton(bool down, int button, bool isPlayer1) {
@@ -126,6 +129,29 @@ class $modify(GJBaseGameLayer) {
     }
 };
 
+class $modify(cocos2d::CCDirector) {
+    bool init(void) {
+        if (!cocos2d::CCDirector::init()) return false;
+        last_time = std::chrono::steady_clock::now();
+        return true;
+    }
+    
+    void drawScene(void) {
+        if (uv::hacks::speedhack && uv::hacks::speedhack_classic) {
+            now = std::chrono::steady_clock::now();
+            accumulator += now - last_time;
+            last_time = now;
+
+            double frame_length = this->getAnimationInterval() * (1.0 / uv::hacks::speedhack_multiplier);
+            
+            if (std::chrono::duration<double>(accumulator).count() < frame_length) return;
+            accumulator -= std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(accumulator));
+        }
+            
+        cocos2d::CCDirector::drawScene();
+    }
+};
+
 class $modify(cocos2d::CCScheduler) {
     void update(float dt) {
         /*
@@ -135,7 +161,7 @@ class $modify(cocos2d::CCScheduler) {
             CCScheduler::update(dt);
         }
         */
-        CCScheduler::update(dt);
+        cocos2d::CCScheduler::update(uv::hacks::lock_delta ? cocos2d::CCDirector::get()->getAnimationInterval() : dt);
     }
 };
 
@@ -336,7 +362,7 @@ class $modify(PlayerObject) {
 
 class $modify(cocos2d::CCScheduler) {
     void update(float dt) {
-        if (uv::hacks::speedhack) dt *= uv::hacks::speedhack_multiplier;
+        if (uv::hacks::speedhack && !uv::hacks::speedhack_classic) dt *= uv::hacks::speedhack_multiplier;
         CCScheduler::update(dt);
     }
 };

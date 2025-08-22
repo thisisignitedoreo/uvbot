@@ -98,8 +98,9 @@ namespace uv {
     }
 
     namespace hacks {
-        extern bool speedhack;
+        extern bool speedhack, speedhack_classic;
         extern float speedhack_multiplier;
+        extern bool lock_delta;
         extern bool noclip, noclip_p1, noclip_p2;
         extern bool hitboxes;
         extern float hitboxes_thickness;

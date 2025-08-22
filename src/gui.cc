@@ -237,6 +237,17 @@ namespace uv::gui {
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::DragFloat("##Speedhack", &uv::hacks::speedhack_multiplier, 0.01f, 0.0f, 3.0f, "Speedhack: %.2fx");
+                if (uv::hacks::speedhack_multiplier <= 0.0f) uv::hacks::speedhack_multiplier = 1.0f;
+                
+                ImGui::Checkbox("Classic Mode Speedhack", &uv::hacks::speedhack_classic);
+                ImGui::SameLine();
+                ImGui::TextDisabled("?");
+                ImGui::SetItemTooltip("Instead of making the game smoothly slower, classic mode slows down the framerate.\nUseful for recording the game with OBS or something.");
+
+                ImGui::Checkbox("Lock DeltaTime", &uv::hacks::lock_delta);
+                ImGui::SameLine();
+                ImGui::TextDisabled("?");
+                ImGui::SetItemTooltip("Disables frame skip when the game can't keep up with the target FPS.\nUseful for showcasing.");
 
                 if (ImGui::Checkbox("Noclip", &uv::hacks::noclip) && uv::hacks::noclip) {
                     uv::hacks::noclip_p1 = false;
