@@ -147,7 +147,7 @@ class $modify(cocos2d::CCDirector) {
             if (std::chrono::duration<double>(accumulator).count() < frame_length) return;
             accumulator -= std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(accumulator));
         }
-            
+
         cocos2d::CCDirector::drawScene();
     }
 };
@@ -170,8 +170,10 @@ class $modify(HookedCheckpointObject, CheckpointObject) {
         uv::practice_fix::checkpoint_data p1, p2;
     };
 
-    bool init() {
-        if (CheckpointObject::init()) return false;
+    bool init(void) {
+        //  | This one byte of code just cost me an hour of painful debugging
+        //  v I will never get that time back
+        if (!CheckpointObject::init()) return false;
         
         PlayLayer *pl = PlayLayer::get();
 
@@ -239,7 +241,7 @@ class $modify(PlayLayer) {
 
     void loadFromCheckpoint(CheckpointObject *cp) {
         PlayLayer::loadFromCheckpoint(cp);
-        
+
         if (uv::hacks::practice_fix) {
             uv::practice_fix::restore_playerobject(this->m_player1, static_cast<HookedCheckpointObject*>(cp)->m_fields->p1);
             uv::practice_fix::restore_playerobject(this->m_player2, static_cast<HookedCheckpointObject*>(cp)->m_fields->p2);
