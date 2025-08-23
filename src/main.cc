@@ -16,7 +16,9 @@ $on_mod(Loaded) {
 
     for (auto &path : paths) {
         if (!std::filesystem::exists(path, error) || !std::filesystem::is_directory(path, error)) {
-            std::filesystem::create_directory(path);
+            if (!geode::utils::file::createDirectory(path)) {
+                geode::log::warn("Couldn't create '{}'", path);
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 #include "common.hh"
 
-namespace uv::bot::recorder::audio {
+namespace uv::recorder::audio {
     bool recording = false;
     options recording_options;
 

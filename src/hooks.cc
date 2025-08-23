@@ -21,9 +21,11 @@
 
 static bool debug_update = false;
 static bool override_rotation = false;
-// static bool level_ended = false;
-// static std::chrono::steady_clock::time_point level_end_point;
-// static EndLevelLayer *ell;
+static bool level_ended = false;
+static bool ready_to_render = false;
+static bool ready_to_start_audio_render = false;
+static std::chrono::steady_clock::time_point level_end_point;
+static EndLevelLayer *ell;
 static std::chrono::steady_clock::time_point last_time, now;
 static std::chrono::steady_clock::duration accumulator;
 
@@ -35,49 +37,49 @@ class $modify(GJBaseGameLayer) {
     }
     
     void processCommands(float dt) {
-        /*
-        if (uv::bot::recorder::audio::recording) {
+        if (uv::recorder::audio::recording) {
+            if (ready_to_start_audio_render && ready_to_render) uv::recorder::audio::start();
             if (level_ended) {
-                std::chrono::steady_clock::duration excess_amount(std::chrono::milliseconds(static_cast<long long>(uv::bot::recorder::audio::recording_options.excess_render * 1000)));
+                std::chrono::steady_clock::duration excess_amount(std::chrono::milliseconds(static_cast<long long>(uv::recorder::audio::recording_options.excess_render * 1000)));
                 if (std::chrono::steady_clock::now() - level_end_point >= excess_amount) {
                     level_ended = false;
-                    uv::bot::recorder::audio::end();
-                    if (uv::bot::recorder::audio::recording_options.merge_audio) {
+                    uv::recorder::audio::end();
+                    if (uv::recorder::audio::recording_options.merge_audio) {
                         geode::log::debug("Merging audio");
                         std::stringstream output;
-                        std::string input_video = uv::bot::recorder::recording_options.output_path;
+                        std::string input_video = uv::recorder::recording_options.output_path;
                         output << input_video.substr(0, input_video.rfind(".")) << " +Music";
                         output << input_video.substr(input_video.rfind("."), input_video.size());
-                        uv::bot::recorder::merge(input_video, (geode::dirs::getGameDir() / "fmodoutput.wav").string(), output.str());
+                        uv::recorder::merge(input_video, (geode::dirs::getGameDir() / "fmodoutput.wav").string(), output.str());
                     }
                 }
             }
         }
-        */
         
         GJBaseGameLayer::processCommands(dt);
         uv::bot::update_input(this, dt);
     }
     
     void update(float dt) {
-        /*
-        if (uv::bot::recorder::recording) {
-            uv::bot::recorder::update();
+        if (uv::recorder::recording && ready_to_render) {
+            PlayLayer *pl = PlayLayer::get();
+            if (pl) pl->processActivatedAudioTriggers(pl->m_gameState.m_levelTime);
+            uv::recorder::update();
             if (level_ended) {
-                std::chrono::steady_clock::duration excess_amount(std::chrono::milliseconds(static_cast<long long>(uv::bot::recorder::recording_options.excess_render * 1000)));
+                std::chrono::steady_clock::duration excess_amount(std::chrono::milliseconds(static_cast<long long>(uv::recorder::recording_options.excess_render * 1000)));
                 if (std::chrono::steady_clock::now() - level_end_point >= excess_amount) {
                     level_ended = false;
-                    uv::bot::recorder::end();
+                    uv::recorder::end();
+                    ready_to_render = false;
                     PlayLayer *pl = PlayLayer::get();
-                    if (pl && uv::bot::recorder::audio::recording) {
-                        ell->exitLayer(nullptr);
+                    if (pl && uv::recorder::audio::recording) {
+                        ell->exitLayer(0x69420);
                         pl->resetLevel();
-                        uv::bot::recorder::audio::start();
+                        ready_to_start_audio_render = true;
                     }
                 }
             }
         }
-        */
         
         GJBaseGameLayer::update(dt);
         uv::bot::update_physics(this, dt);
@@ -154,14 +156,11 @@ class $modify(cocos2d::CCDirector) {
 
 class $modify(cocos2d::CCScheduler) {
     void update(float dt) {
-        /*
-        if (uv::bot::recorder::recording) {
-            CCScheduler::update(1.0f / uv::bot::recorder::recording_options.fps);
+        if (uv::recorder::recording) {
+            cocos2d::CCScheduler::update(1.0f / uv::recorder::recording_options.fps);
         } else {
-            CCScheduler::update(dt);
+            cocos2d::CCScheduler::update(uv::hacks::lock_delta ? cocos2d::CCDirector::get()->getAnimationInterval() : dt);
         }
-        */
-        cocos2d::CCScheduler::update(uv::hacks::lock_delta ? cocos2d::CCDirector::get()->getAnimationInterval() : dt);
     }
 };
 
@@ -206,34 +205,29 @@ class $modify(EndLevelLayer) {
     void showLayer(bool p0) {
         EndLevelLayer::showLayer(p0);
 
-        /*
-        if (uv::bot::recorder::recording || uv::bot::recorder::audio::recording) {
+        if (uv::recorder::recording || uv::recorder::audio::recording) {
             level_ended = true;
             level_end_point = std::chrono::steady_clock::now();
             ell = this;
         }
-        */
-    }
-
-    void customSetup(void) {
-        EndLevelLayer::customSetup();
-
-        /*
-        if (uv::bot::recorder::recording) {
-            this->setVisible(!uv::bot::recorder::recording_options.hide_end_level_screen);
-        } else if (!this->isVisible()) this->setVisible(true);
-        */
+        
+        this->setVisible(!uv::recorder::recording || !uv::recorder::recording_options.hide_end_level_screen);
     }
 };
 
 class $modify(FMODAudioEngine) {
     int playEffect(gd::string path, float speed, float p2, float volume) {
-        // if (uv::bot::recorder::audio::recording && (path == "explode_11.ogg" || path == "playSound_01.ogg")) return 0;
+        if (uv::recorder::audio::recording && (path == "explode_11.ogg" || path == "playSound_01.ogg")) return 0;
         return FMODAudioEngine::playEffect(path, speed, p2, volume);
     }
 };
 
 class $modify(PlayLayer) {
+    void startGame(void) {
+        if (uv::recorder::recording || uv::recorder::audio::recording) ready_to_render = true;
+        PlayLayer::startGame();
+    }
+    
     void resetLevel(void) {
         PlayLayer::resetLevel();
         uv::bot::reset();
@@ -324,14 +318,12 @@ class $modify(UILayer) {
     bool init(GJBaseGameLayer *p0) {
         if (!UILayer::init(p0)) return false;
         
-        /*
-        if (!uv::bot::recorder::recording) return true;
+        if (!uv::recorder::recording) return true;
         
         cocos2d::CCMenu *menu = getChildByType<cocos2d::CCMenu>(0);
         CCMenuItemSpriteExtra *btn = menu->getChildByType<CCMenuItemSpriteExtra>(0);
 
         if (menu && btn) btn->getNormalImage()->setVisible(false);
-        */
 
         return true;
     }

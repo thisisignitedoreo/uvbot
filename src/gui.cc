@@ -11,20 +11,19 @@ namespace uv::gui {
     bool debug = false;
     std::chrono::steady_clock::time_point toggle_time;
     
-    static bool show_demo = false, show_style_editor = false;
+    static bool show_demo = false, show_style_editor = false, pushed_colors = false;
     
-    static std::string macro_name/*, video_name, audio_name*/;
+    static std::string macro_name, video_name, audio_name;
 
     static const std::filesystem::path macro_path = geode::Mod::get()->getSaveDir() / "Macros";
-    // static const std::filesystem::path showcase_path = geode::Mod::get()->getSaveDir() / "Showcases";
+    static const std::filesystem::path showcase_path = geode::Mod::get()->getSaveDir() / "Showcases";
     
     static const std::chrono::steady_clock::duration animation_duration = std::chrono::milliseconds(150);
 
-    // static bool recording = false;
-    // static bool record_audio = false, merge_audio = false;
+    static bool recording = false;
+     static bool record_audio = false, merge_audio = false;
 
-    /*
-    uv::bot::recorder::options render_opts = {
+    uv::recorder::options render_opts = {
         .width = 1920,
         .height = 1080,
         .fps = 60.0f,
@@ -36,7 +35,7 @@ namespace uv::gui {
         .hide_end_level_screen = true,
     };
     
-    uv::bot::recorder::audio::options audio_opts = {
+    uv::recorder::audio::options audio_opts = {
         .output_path = (showcase_path / ".wav").string(),
         .music_volume = 1.0f,
         .sfx_volume = 1.0f,
@@ -45,8 +44,7 @@ namespace uv::gui {
     };
     
     static const std::filesystem::path ffmpeg_path = geode::dirs::getGameDir() / "ffmpeg.exe";
-    */
-
+    
     inline std::string trim_string(std::string s) {
         s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
             return !std::isspace(ch);
@@ -74,7 +72,7 @@ namespace uv::gui {
         style.WindowPadding = ImVec2(12.0f, 8.0f);
         style.WindowRounding = 8.4f;
         style.WindowBorderSize = 1.0f;
-        style.WindowMinSize = ImVec2(400.0f, 200.0f);
+        style.WindowMinSize = ImVec2(100.0f, 100.0f);
         style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
         style.WindowMenuButtonPosition = ImGuiDir_None;
         style.ChildRounding = 3.0f;
@@ -159,7 +157,13 @@ namespace uv::gui {
         style.Colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
     }
 
+    static void draw_persistent(void) {
+        // TODO: write this part
+    }
+    
     void draw(void) {
+        draw_persistent();
+        
         bool animating = std::chrono::steady_clock::now() - toggle_time < animation_duration;
         if (!show && !animating) return;
 
@@ -176,11 +180,15 @@ namespace uv::gui {
             ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.23f, 0.13f, 0.13f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.27f, 0.17f, 0.17f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.23f, 0.13f, 0.13f, 1.0f));
+            pushed_colors = true;
         } else if (uv::bot::current_state == uv::bot::state::playing) {
             ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.13f, 0.23f, 0.13f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.17f, 0.27f, 0.17f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.13f, 0.23f, 0.13f, 1.0f));
+            pushed_colors = true;
         }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400.0f, 200.0f));
 
         if (uv::bot::current_state == uv::bot::state::recording) ImGui::Begin("uvBot - Recording###uvBot");
         else if (uv::bot::current_state == uv::bot::state::playing) ImGui::Begin("uvBot - Playing###uvBot");
@@ -212,27 +220,48 @@ namespace uv::gui {
                 
                 ImGui::BeginDisabled(macro_name.empty());
                 if (ImGui::Button("Save", { button_widths, 0 })) uv::bot::save(trim_string(macro_name));
-                if (macro_name.empty()) ImGui::SetItemTooltip("To save a macro, input its name");
+                if (macro_name.empty() && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                    ImGui::Text("To save a macro, input its name");
+                    ImGui::EndTooltip();
+                }
                 ImGui::SameLine();
-                if (ImGui::Button("Load", { button_widths, 0 })) uv::bot::load(trim_string(macro_name));
-                if (macro_name.empty()) ImGui::SetItemTooltip("To load a macro, input its name");
+                if (ImGui::Button("Load", { button_widths, 0 })) uv::bot::load(trim_string(macro_name)); 
+                if (macro_name.empty() && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                    ImGui::Text("To load a macro, input its name");
+                    ImGui::EndTooltip();
+                }
                 ImGui::EndDisabled();
                 ImGui::SameLine();
-                if (ImGui::Button("Clear", { button_widths, 0 })) uv::bot::clear();
+                if (ImGui::Button("Clear", { button_widths, 0 })) {
+                    uv::bot::clear();
+                    macro_name.clear();
+                }
                 if (ImGui::Button("Open Macros folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(macro_path);
- 
-                ImGui::Text("Input Actions: %d/%d", uv::bot::current_input_action, uv::bot::input_actions.size());
-                ImGui::Text("Physic Actions:");
-                ImGui::Bullet();
-                ImGui::Text("Player 1: %d/%d", uv::bot::current_physic_player_1_action, uv::bot::physic_player_1_actions.size());
-                ImGui::Bullet();
-                ImGui::Text("Player 2: %d/%d", uv::bot::current_physic_player_2_action, uv::bot::physic_player_2_actions.size());
-                ImGui::Text("Frame: %d", uv::bot::get_frame());
+
+                ImGui::SeparatorText("Macros");
+                
+                std::error_code error;
+                for (auto const &dir_entry : std::filesystem::directory_iterator(macro_path, error)) {
+                    if (dir_entry.is_regular_file() && dir_entry.path().string().ends_with(".uv")) {
+                        std::string path = dir_entry.path().string();
+                        int from = path.rfind(dir_entry.path().preferred_separator);
+                        if (from == std::string::npos) from = 0;
+                        std::string name = path.substr(from + 1, path.size() - from - 4);
+                        if (ImGui::Button(name.c_str(), { ImGui::GetContentRegionAvail().x, 0 })) {
+                            uv::bot::load(name);
+                            macro_name = name;
+                        }
+                    }
+                }
+
+                if (error) geode::log::debug("Error reading macro directory: {}", error.message());
 
                 ImGui::EndTabItem();
             }
 
             if (ImGui::BeginTabItem("Hacks")) {
+                ImGui::SeparatorText("Botting");
+                
                 ImGui::Checkbox("##Speedhack Checkbox", &uv::hacks::speedhack);
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -248,6 +277,10 @@ namespace uv::gui {
                 ImGui::SameLine();
                 ImGui::TextDisabled("?");
                 ImGui::SetItemTooltip("Disables frame skip when the game can't keep up with the target FPS.\nUseful for showcasing.");
+                
+                ImGui::Checkbox("Practice Fix", &uv::hacks::practice_fix);
+
+                ImGui::SeparatorText("Player");
 
                 if (ImGui::Checkbox("Noclip", &uv::hacks::noclip) && uv::hacks::noclip) {
                     uv::hacks::noclip_p1 = false;
@@ -264,6 +297,8 @@ namespace uv::gui {
                     uv::hacks::noclip = false;
                 }
                 
+                ImGui::SeparatorText("Cosmetic");
+                
                 ImGui::Checkbox("Show Hitboxes", &uv::hacks::hitboxes);
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -271,12 +306,9 @@ namespace uv::gui {
                 
                 ImGui::Checkbox("Layout Mode", &uv::hacks::layout_mode);
                 
-                ImGui::Checkbox("Practice Fix", &uv::hacks::practice_fix);
-                
                 ImGui::EndTabItem();
             }
 
-            /*
             if (ImGui::BeginTabItem("Recorder")) {
                 std::error_code error;
                 if (!std::filesystem::is_regular_file(ffmpeg_path, error) || !std::filesystem::exists(ffmpeg_path, error)) {
@@ -370,20 +402,22 @@ namespace uv::gui {
                     ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
                     
                     ImGui::BeginDisabled(video_name.empty() || (record_audio && !merge_audio && audio_name.empty()) || (record_audio && !merge_audio && !audio_name.empty() && !audio_name.ends_with(".wav")));
-                    recording = uv::bot::recorder::recording;
+                    
+                    recording = uv::recorder::recording;
                     if (ImGui::Button(recording ? "Stop Recording" : "Start Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
                         recording = !recording;
                         if (recording) {
-                            uv::bot::recorder::start(render_opts);
-                            if (record_audio) uv::bot::recorder::audio::init(audio_opts);
+                            uv::recorder::start(render_opts);
+                            if (record_audio) uv::recorder::audio::init(audio_opts);
                         } else {
-                            uv::bot::recorder::end();
-                            if (record_audio) uv::bot::recorder::audio::end();
+                            uv::recorder::end();
+                            if (record_audio) uv::recorder::audio::end();
                         }
                     }
+                    
                     ImGui::EndDisabled();
 
-                    if (ImGui::BeginItemTooltip()) {
+                    if ((video_name.empty() || (record_audio && !merge_audio && audio_name.empty()) || (record_audio && !merge_audio && !audio_name.empty() && !audio_name.ends_with(".wav"))) && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
                         if (video_name.empty()) ImGui::Text("Input the video filename");
                         if (record_audio && !merge_audio && audio_name.empty()) ImGui::Text("Input the audio filename");
                         if (record_audio && !merge_audio && !audio_name.empty() && !audio_name.ends_with(".wav")) ImGui::Text("Audio can only be in .wav format");
@@ -393,7 +427,6 @@ namespace uv::gui {
                 
                 ImGui::EndTabItem();
             }
-            */
 
             if (ImGui::BeginTabItem("About")) {
                 ImGui::SeparatorText("About uvBot");
@@ -435,10 +468,13 @@ namespace uv::gui {
         
         ImGui::End();
 
-        if (uv::bot::current_state != uv::bot::state::none) {
+        ImGui::PopStyleVar();
+        
+        if (pushed_colors) {
             ImGui::PopStyleColor();
             ImGui::PopStyleColor();
             ImGui::PopStyleColor();
+            pushed_colors = false;
         }
 
         if (show_demo) ImGui::ShowDemoWindow();

@@ -3,7 +3,7 @@
 #include "common.hh"
 
 // Thanks matcool
-namespace uv::bot::recorder {
+namespace uv::recorder {
     struct render_texture {
         unsigned int width, height;
         unsigned int fbo; int old_fbo;

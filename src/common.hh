@@ -56,45 +56,42 @@ namespace uv {
         void save(std::string name);
         void load(std::string name);
 
-        /*
-        namespace recorder {
-            struct options {
-                int width, height;
-                float fps, excess_render;
-                std::string codec, bitrate;
-                std::string output_path;
-                std::string custom_options;
-                bool hide_end_level_screen;
-            };
+    }
+    
+    namespace recorder {
+        struct options {
+            int width, height;
+            float fps, excess_render;
+            std::string codec, bitrate;
+            std::string output_path;
+            std::string custom_options;
+            bool hide_end_level_screen;
+        };
 
-            void start(options opt);
-            void update(void);
+        void start(options opt);
+        void update(void);
+        void end(void);
+
+        extern bool recording;
+        extern options recording_options;
+        
+        namespace audio {
+            struct options {
+                std::string output_path;
+                float music_volume, sfx_volume;
+                float excess_render;
+                bool merge_audio;
+            };
+            
+            void init(options opt);
+            void start(void);
             void end(void);
 
             extern bool recording;
             extern options recording_options;
-
-            // uv::bot::recorder::audio
-            // std has longer names, that's fine
-            namespace audio {
-                struct options {
-                    std::string output_path;
-                    float music_volume, sfx_volume;
-                    float excess_render;
-                    bool merge_audio;
-                };
-                
-                void init(options opt);
-                void start(void);
-                void end(void);
-
-                extern bool recording;
-                extern options recording_options;
-            }
-
-            void merge(std::string video, std::string audio, std::string output);
         }
-        */
+
+        void merge(std::string video, std::string audio, std::string output);
     }
 
     namespace hacks {
