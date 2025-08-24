@@ -11,6 +11,9 @@
 			      "assets/*"
 		    ]
 	  },
+    "links": {
+        "source": "https://github.com/thisisignitedoreo/uvbot"
+    },
 	  "id": "aciddev.uvbot",
 	  "name": "uvBot",
 	  "version": "v0.0.1-alpha",
