@@ -11,7 +11,7 @@ namespace uv::gui {
     bool debug = false;
     std::chrono::steady_clock::time_point toggle_time;
     
-    static bool show_demo = false, show_style_editor = false, pushed_colors = false, recorder_alpha = false;
+    static bool show_demo = false, show_style_editor = false, pushed_colors = false, recorder_alpha = true;
     
     static std::string macro_name, video_name, audio_name;
 
@@ -21,7 +21,7 @@ namespace uv::gui {
     static const std::chrono::steady_clock::duration animation_duration = std::chrono::milliseconds(150);
 
     static bool recording = false;
-     static bool record_audio = false, merge_audio = false;
+    static bool record_audio = false, merge_audio = false;
 
     uv::recorder::options render_opts = {
         .width = 1920,
