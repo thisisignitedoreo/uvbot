@@ -73,7 +73,7 @@ class $modify(GJBaseGameLayer) {
                     ready_to_render = false;
                     PlayLayer *pl = PlayLayer::get();
                     if (pl && uv::recorder::audio::recording) {
-                        ell->exitLayer(0x69420);
+                        ell->exitLayer(nullptr);
                         pl->resetLevel();
                         ready_to_start_audio_render = true;
                     }

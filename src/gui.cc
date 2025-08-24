@@ -11,7 +11,7 @@ namespace uv::gui {
     bool debug = false;
     std::chrono::steady_clock::time_point toggle_time;
     
-    static bool show_demo = false, show_style_editor = false, pushed_colors = false;
+    static bool show_demo = false, show_style_editor = false, pushed_colors = false, recorder_alpha = false;
     
     static std::string macro_name, video_name, audio_name;
 
@@ -311,7 +311,14 @@ namespace uv::gui {
 
             if (ImGui::BeginTabItem("Recorder")) {
                 std::error_code error;
-                if (!std::filesystem::is_regular_file(ffmpeg_path, error) || !std::filesystem::exists(ffmpeg_path, error)) {
+                if (!recorder_alpha) {
+                    ImGui::PushTextWrapPos(0.0f);
+                    ImGui::Text("Recorder feature is in deep alpha. This may break halfway through the level or even crash the game. Use at your own discretion.");
+                    
+                    ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                    if (ImGui::Button("Okay, got it", { ImGui::GetContentRegionAvail().x, 0 })) recorder_alpha = true;
+                    ImGui::PopTextWrapPos();
+                } else if (!std::filesystem::is_regular_file(ffmpeg_path, error) || !std::filesystem::exists(ffmpeg_path, error)) {
                     ImGui::PushTextWrapPos(0.0f);
                     ImGui::Text("For the internal recorder feature to work, you need to copy ffmpeg.exe to Geometry Dash installation path.");
                     
