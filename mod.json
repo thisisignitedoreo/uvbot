@@ -18,5 +18,10 @@
 	  "name": "uvBot",
 	  "version": "v0.0.2-alpha",
 	  "developer": "aciddev_",
-	  "description": "A TAS tool for Geometry Dash"
+	  "description": "A TAS tool for Geometry Dash",
+    "tags": [
+        "cheat",
+        "utility",
+        "gameplay"
+    ]
 }
