@@ -239,9 +239,11 @@ namespace uv::gui {
                 if (ImGui::Button("Open Macros folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(macro_path);
 
                 ImGui::SeparatorText("Macros");
-                
+
+                bool not_empty = false;
                 std::error_code error;
                 for (auto const &dir_entry : std::filesystem::directory_iterator(macro_path, error)) {
+                    not_empty = true; // I am too lazy to do this the right way
                     if (dir_entry.is_regular_file() && dir_entry.path().string().ends_with(".uv")) {
                         std::string path = dir_entry.path().string();
                         int from = path.rfind(dir_entry.path().preferred_separator);
@@ -253,6 +255,8 @@ namespace uv::gui {
                         }
                     }
                 }
+
+                if (!not_empty) ImGui::TextDisabled("No macros saved... :_(");
 
                 if (error) geode::log::debug("Error reading macro directory: {}", error.message());
 
@@ -372,14 +376,12 @@ namespace uv::gui {
 
                     ImGui::SetItemTooltip("Audio will be recorded on the next attempt\nMerging will automatically combine video and audio when both are done");
 
-                    if (record_audio && !merge_audio) {
+                    if (record_audio) {
                         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                         if (ImGui::InputTextWithHint("##Audio Filename", "Audio Filename (e.g. file.wav)", &audio_name)) {
-                            audio_opts.output_path = (showcase_path / video_name).string();
+                            audio_opts.output_path = (showcase_path / audio_name).string();
                         }
-                    }
-
-                    if (record_audio) {
+                        
                         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                         ImGui::DragFloat("##Music volume", &audio_opts.music_volume, 0.01f, 0.0f, 1.0f, "Music volume: %.2f", ImGuiSliderFlags_AlwaysClamp);
                         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -408,7 +410,7 @@ namespace uv::gui {
                     
                     ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
                     
-                    ImGui::BeginDisabled(video_name.empty() || (record_audio && !merge_audio && audio_name.empty()) || (record_audio && !merge_audio && !audio_name.empty() && !audio_name.ends_with(".wav")));
+                    ImGui::BeginDisabled(video_name.empty() || (record_audio && audio_name.empty()) || (record_audio && !audio_name.empty() && !audio_name.ends_with(".wav")));
                     
                     recording = uv::recorder::recording;
                     if (ImGui::Button(recording ? "Stop Recording" : "Start Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
@@ -424,10 +426,10 @@ namespace uv::gui {
                     
                     ImGui::EndDisabled();
 
-                    if ((video_name.empty() || (record_audio && !merge_audio && audio_name.empty()) || (record_audio && !merge_audio && !audio_name.empty() && !audio_name.ends_with(".wav"))) && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                    if ((video_name.empty() || (record_audio && audio_name.empty()) || (record_audio && !audio_name.empty() && !audio_name.ends_with(".wav"))) && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
                         if (video_name.empty()) ImGui::Text("Input the video filename");
-                        if (record_audio && !merge_audio && audio_name.empty()) ImGui::Text("Input the audio filename");
-                        if (record_audio && !merge_audio && !audio_name.empty() && !audio_name.ends_with(".wav")) ImGui::Text("Audio can only be in .wav format");
+                        if (record_audio && audio_name.empty()) ImGui::Text("Input the audio filename");
+                        if (record_audio && !audio_name.empty() && !audio_name.ends_with(".wav")) ImGui::Text("Audio can only be in .wav format");
                         ImGui::EndTooltip();
                     }
                 }

@@ -9,7 +9,7 @@ namespace uv::recorder::audio {
 
     float original_music_volume, original_sfx_volume;
 
-    static std::vector<std::uint8_t> data;
+    static std::vector<float> data;
     static FMOD::DSP *dsp = nullptr;
     static FMOD::ChannelGroup *master_group = nullptr;
     static std::mutex data_mutex;
@@ -25,22 +25,31 @@ namespace uv::recorder::audio {
         strcpy(desc.name, "DSP Recorder");
         desc.numinputbuffers = 1;
         desc.numoutputbuffers = 1;
+        desc.version = FMOD_VERSION;
         desc.read = [](FMOD_DSP_STATE* dsp_state, float* in_buffer, float* out_buffer, unsigned int length, int in_channels, int* out_channels) {
-            if (!recording) return FMOD_OK;
+            int channels = in_channels;
 
-            int channels = *out_channels;
-            
-            data_mutex.lock();
-            data.insert(data.end(), in_buffer, in_buffer + length * channels);
-            data_mutex.unlock();
+            geode::log::debug("Sanity check - callback is called");
 
             std::memcpy(out_buffer, in_buffer, length * channels * sizeof(float));
 
+            if (out_channels) *out_channels = channels;
+            
+            if (recording) {
+                data_mutex.lock();
+                data.insert(data.end(), in_buffer, in_buffer + length * channels);
+                data_mutex.unlock();
+            }
+                
             return FMOD_OK;
         };
 
-        system->createDSP(&desc, &dsp);
-        system->getMasterChannelGroup(&master_group);
+        FMOD_RESULT r;
+        r = system->createDSP(&desc, &dsp);
+        assert(r == FMOD_OK);
+        r = system->getMasterChannelGroup(&master_group);
+        assert(r == FMOD_OK);
+        geode::log::debug("init()");
     }
 
     void start(void) {
@@ -51,11 +60,16 @@ namespace uv::recorder::audio {
         fmod_engine->setBackgroundMusicVolume(recording_options.music_volume);
         fmod_engine->setEffectsVolume(recording_options.sfx_volume);
 
-        master_group->addDSP(0, dsp);
+        FMOD_RESULT r = master_group->addDSP(FMOD_CHANNELCONTROL_DSP_TAIL, dsp);
+        assert(r == FMOD_OK);
+        
+        dsp->setActive(true);
+        dsp->setBypass(false);
 
         data_mutex.lock();
         data.clear();
         data_mutex.unlock();
+        geode::log::debug("start()");
     }
 
     static void save_to_wav(const char *output_path) {
@@ -64,7 +78,7 @@ namespace uv::recorder::audio {
         
         drwav_data_format format;
         format.container = drwav_container_riff;
-        format.format = DR_WAVE_FORMAT_PCM;
+        format.format = DR_WAVE_FORMAT_IEEE_FLOAT;
         format.channels = channels;
         format.sampleRate = sample_rate;
         format.bitsPerSample = 32;
@@ -72,7 +86,9 @@ namespace uv::recorder::audio {
         drwav wav;
         drwav_init_file_write(&wav, output_path, &format, NULL);
 
-        drwav_uint64 written = drwav_write_pcm_frames(&wav, data.size(), data.data());
+        drwav_uint64 written = drwav_write_pcm_frames(&wav, data.size() / channels, data.data());
+
+        geode::log::debug("Written {} samples out of {}", written, data.size() / channels);
 
         drwav_uninit(&wav);
     }
@@ -87,5 +103,6 @@ namespace uv::recorder::audio {
         fmod_engine->setEffectsVolume(original_sfx_volume);
 
         save_to_wav(recording_options.output_path.c_str());
+        geode::log::debug("end()");
     }
 }

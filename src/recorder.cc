@@ -46,8 +46,7 @@ namespace uv::recorder {
         glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, rt.texture->getName(), 0);
         
         rt.texture->setAliasTexParameters();
-        rt.texture->autorelease();
-
+        
         glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, old_rbo);
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, rt.old_fbo);
     }
