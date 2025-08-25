@@ -10,6 +10,7 @@ Features include:
 
 * Good accuracy (Hardest recorded level by me is Thinking Space II)
 * Standalone-ness (You don't need an additional mod menu to use this bot efficiently)
+* Internal Recorder
 
 == Quickstart
 Compile it or download from https://github.com/thisisignitedoreo/uvbot/actions[Actions]
@@ -64,6 +65,10 @@ undebuggable bug.
 
 If you want to have a version with your modifications - feel free to
 create a fork, however, none of them will be accepted into upstream.
+
+== Links
+
+* https://discord.gg/GmRDUKRqE8[Discord Server]
 
 == Thanks to
 

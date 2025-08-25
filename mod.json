@@ -12,6 +12,7 @@
 		    ]
 	  },
     "links": {
+        "community": "https://discord.gg/GmRDUKRqE8",
         "source": "https://github.com/thisisignitedoreo/uvbot"
     },
 	  "id": "aciddev.uvbot",

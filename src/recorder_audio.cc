@@ -29,8 +29,6 @@ namespace uv::recorder::audio {
         desc.read = [](FMOD_DSP_STATE* dsp_state, float* in_buffer, float* out_buffer, unsigned int length, int in_channels, int* out_channels) {
             int channels = in_channels;
 
-            geode::log::debug("Sanity check - callback is called");
-
             std::memcpy(out_buffer, in_buffer, length * channels * sizeof(float));
 
             if (out_channels) *out_channels = channels;

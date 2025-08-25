@@ -5,6 +5,8 @@
 #include "common.hh"
 
 $on_mod(Loaded) {
+    uv::hacks::load();
+    
     ImGuiCocos::get().setup(uv::gui::setup).draw(uv::gui::draw);
     
     std::vector<std::filesystem::path> paths = {

@@ -97,14 +97,12 @@ class $modify(GJBaseGameLayer) {
         uv::bot::update_physics(this, dt);
     }
 
-#define POLYGON_FROM_RECT(r) { cocos2d::CCPoint((r).getMinX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMaxY()), cocos2d::CCPoint((r).getMinX(), (r).getMaxY()) }
+    #define POLYGON_FROM_RECT(r) { cocos2d::CCPoint((r).getMinX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMaxY()), cocos2d::CCPoint((r).getMinX(), (r).getMaxY()) }
     
     void updateDebugDraw(void) {
         debug_update = true;
         this->updateDebugDraw();
         debug_update = false;
-
-        // TODO: custom hitbox rendering
 
         // Thanks toby
         
@@ -214,7 +212,22 @@ class $modify(PlayerObject) {
     }
 };
 
-class $modify(EndLevelLayer) {
+class $modify(HookedEndLevelLayer, EndLevelLayer) {
+    struct Fields {
+        cocos2d::CCSprite *black_fg;
+    };
+
+    void update_fade_out(float) {
+        if (m_fields->black_fg) {
+            if (uv::recorder::recording) {
+                std::chrono::steady_clock::duration excess(std::chrono::milliseconds(static_cast<long long>(uv::recorder::recording_options.excess_render * 1000)));
+                float opacity = (std::chrono::steady_clock::now() - level_end_point).count() / static_cast<float>(excess.count());
+                m_fields->black_fg->setOpacity(static_cast<unsigned char>(opacity * 255.0f));
+            } else m_fields->black_fg->setOpacity(0);
+        }
+        if (!uv::recorder::recording && !uv::recorder::audio::recording) this->setVisible(true);
+    }
+    
     void showLayer(bool p0) {
         EndLevelLayer::showLayer(p0);
 
@@ -222,8 +235,26 @@ class $modify(EndLevelLayer) {
             level_ended = true;
             level_end_point = std::chrono::steady_clock::now();
             ell = this;
+
+            PlayLayer *pl = PlayLayer::get();
+            if (pl) {
+                cocos2d::CCSize wnd_size = cocos2d::CCDirector::sharedDirector()->getWinSize();
+                
+                m_fields->black_fg = cocos2d::CCSprite::create("game_bg_13_001.png");
+                
+                cocos2d::CCSize spr_size = m_fields->black_fg->getContentSize();
+                m_fields->black_fg->setPosition({ wnd_size.width / 2, wnd_size.height / 2 });            
+                m_fields->black_fg->setScaleX(wnd_size.width / spr_size.width * 2.f);
+                m_fields->black_fg->setScaleY(wnd_size.height / spr_size.height * 2.f);
+                m_fields->black_fg->setColor({ 0, 0, 0 });
+                m_fields->black_fg->setOpacity(0);
+                m_fields->black_fg->setZOrder(1000);
+
+                pl->addChild(m_fields->black_fg);
+            }
         }
         
+        this->schedule(schedule_selector(HookedEndLevelLayer::update_fade_out), 0.0f);
         this->setVisible(!uv::recorder::recording || !uv::recorder::recording_options.hide_end_level_screen);
     }
 };
@@ -376,18 +407,39 @@ class $modify(cocos2d::CCEGLView) {
         if (action == GLFW_PRESS) {
             if (key == GLFW_KEY_TAB) {
                 uv::gui::toggle_time = std::chrono::steady_clock::now();
-                uv::gui::show = !uv::gui::show;
+                if (!(uv::gui::show = !uv::gui::show)) uv::hacks::save();
             }
             if (key == GLFW_KEY_7 && mods == GLFW_MOD_CONTROL && uv::gui::show) uv::gui::debug = !uv::gui::debug;
         }
     }
 };
 
+#define COLOR4F_EQUALS(c, cr, cg, cb) ((c).r == (cr) && (c).g == (cg) && (c).b == (cb))
+#define FLOAT4_TO_COLOR4F(a) (cocos2d::ccColor4F { (a)[0], (a)[1], (a)[2], (a)[3] })
+
 class $modify(cocos2d::CCDrawNode) {
     bool drawPolygon(cocos2d::CCPoint *vertex, unsigned int count, const cocos2d::ccColor4F &fillColor, float thickness, const cocos2d::ccColor4F &borderColor) {
         thickness = uv::hacks::hitboxes_thickness;
 
-        return cocos2d::CCDrawNode::drawPolygon(vertex, count, fillColor, thickness, borderColor);
+        cocos2d::ccColor4F copy_color, copy_fill_color;
+        if (COLOR4F_EQUALS(borderColor, 1.0f, 0.0f, 0.0f)) {
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_hazards);
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_fill_hazards);
+        } else if (COLOR4F_EQUALS(borderColor, 0.0f, 0.25f, 1.0f)) {
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_solids);
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_fill_solids);
+        } else if (COLOR4F_EQUALS(borderColor, 0.0f, 1.0f, 0.0f)) {
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_specials);
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_fill_specials);
+        } else if (COLOR4F_EQUALS(borderColor, 1.0f, 1.0f, 0.0f)) {
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_player);
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_fill_player);
+        } else {
+            copy_color = borderColor;
+            copy_fill_color = fillColor;
+        }
+
+        return cocos2d::CCDrawNode::drawPolygon(vertex, count, copy_fill_color, thickness, copy_color);
     }
     
     bool drawCircle(const cocos2d::CCPoint &position, float radius, const cocos2d::ccColor4F &color, float thickness, const cocos2d::ccColor4F &borderColor, unsigned int segments) {

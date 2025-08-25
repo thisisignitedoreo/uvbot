@@ -65,7 +65,7 @@ namespace uv {
             std::string codec, bitrate;
             std::string output_path;
             std::string custom_options;
-            bool hide_end_level_screen;
+            bool hide_end_level_screen, fade_out;
         };
 
         void start(options opt);
@@ -93,20 +93,29 @@ namespace uv {
 
         void merge(std::string video, std::string audio, std::string output);
     }
-
+    
     namespace hacks {
-        extern bool speedhack, speedhack_classic;
+        extern bool speedhack;
+        extern bool speedhack_classic;
         extern float speedhack_multiplier;
         extern bool lock_delta;
-        extern bool noclip, noclip_p1, noclip_p2;
+        extern bool noclip;
+        extern bool noclip_p1;
+        extern bool noclip_p2;
         extern bool hitboxes;
         extern float hitboxes_thickness;
+        extern std::vector<float> hitboxes_color_hazards, hitboxes_color_fill_hazards;
+        extern std::vector<float> hitboxes_color_solids, hitboxes_color_fill_solids;
+        extern std::vector<float> hitboxes_color_specials, hitboxes_color_fill_specials;
+        extern std::vector<float> hitboxes_color_player, hitboxes_color_fill_player;
         extern bool layout_mode;
         extern bool practice_fix;
+
+        void load(void);
+        void save(void);
     }
     
     namespace practice_fix {
-        // Excuse my C-ness, I am a C engineer, not a C++ one
         struct checkpoint_data {
             double y_velocity;
             float rotation;

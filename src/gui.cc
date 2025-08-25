@@ -11,7 +11,7 @@ namespace uv::gui {
     bool debug = false;
     std::chrono::steady_clock::time_point toggle_time;
     
-    static bool show_demo = false, show_style_editor = false, pushed_colors = false, recorder_alpha = true;
+    static bool show_demo = false, show_style_editor = false, pushed_colors = false, hitboxes_colors_opened = false;
     
     static std::string macro_name, video_name, audio_name;
 
@@ -33,6 +33,7 @@ namespace uv::gui {
         .output_path = (showcase_path / ".mp4").string(),
         .custom_options = "-pix_fmt yuv420p -vf \"vflip\"",
         .hide_end_level_screen = true,
+        .fade_out = false,
     };
     
     uv::recorder::audio::options audio_opts = {
@@ -205,6 +206,8 @@ namespace uv::gui {
                 ImGui::SameLine();
                 bool changed_playing = ImGui::RadioButton("Playing", state_pointer, uv::bot::state::playing);
 
+                ImGui::Spacing();
+
                 bool changed = changed_none || changed_recording || changed_playing;
                 
                 if (changed) {
@@ -236,6 +239,9 @@ namespace uv::gui {
                     uv::bot::clear();
                     macro_name.clear();
                 }
+                
+                ImGui::Spacing();
+                
                 if (ImGui::Button("Open Macros folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(macro_path);
 
                 ImGui::SeparatorText("Macros");
@@ -301,13 +307,32 @@ namespace uv::gui {
                     uv::hacks::noclip = false;
                 }
                 
-                ImGui::SeparatorText("Cosmetic");
+                ImGui::SeparatorText("Hitboxes");
                 
                 ImGui::Checkbox("Show Hitboxes", &uv::hacks::hitboxes);
-                ImGui::SameLine();
+                
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::DragFloat("##Hitboxes Thickness", &uv::hacks::hitboxes_thickness, 0.01f, 0.01f, 3.0f, "Thickness: %.2f", ImGuiSliderFlags_ClampOnInput);
+
+                if (ImGui::ArrowButton("Hitboxes Colors Collapser", hitboxes_colors_opened ? ImGuiDir_Down : ImGuiDir_Right)) hitboxes_colors_opened = !hitboxes_colors_opened;
+                ImGui::SameLine();
+                ImGui::Text("Hitboxes Colors");
                 
+                if (hitboxes_colors_opened) {
+                    ImGui::ColorEdit4("Hazards", uv::hacks::hitboxes_color_hazards.data());
+                    ImGui::ColorEdit4("Solids", uv::hacks::hitboxes_color_solids.data());
+                    ImGui::ColorEdit4("Specials", uv::hacks::hitboxes_color_specials.data());
+                    ImGui::ColorEdit4("Player", uv::hacks::hitboxes_color_player.data());
+                    ImGui::Spacing();
+                    ImGui::ColorEdit4("Hazards Fill", uv::hacks::hitboxes_color_fill_hazards.data());
+                    ImGui::ColorEdit4("Solids Fill", uv::hacks::hitboxes_color_fill_solids.data());
+                    ImGui::ColorEdit4("Specials Fill", uv::hacks::hitboxes_color_fill_specials.data());
+                    ImGui::ColorEdit4("Player Fill", uv::hacks::hitboxes_color_fill_player.data());
+                }
+                    
+                ImGui::SeparatorText("Cosmetic");
+                
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::Checkbox("Layout Mode", &uv::hacks::layout_mode);
                 
                 ImGui::EndTabItem();
@@ -315,14 +340,7 @@ namespace uv::gui {
 
             if (ImGui::BeginTabItem("Recorder")) {
                 std::error_code error;
-                if (!recorder_alpha) {
-                    ImGui::PushTextWrapPos(0.0f);
-                    ImGui::Text("Recorder feature is in deep alpha. This may break halfway through the level or even crash the game. Use at your own discretion.");
-                    
-                    ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
-                    if (ImGui::Button("Okay, got it", { ImGui::GetContentRegionAvail().x, 0 })) recorder_alpha = true;
-                    ImGui::PopTextWrapPos();
-                } else if (!std::filesystem::is_regular_file(ffmpeg_path, error) || !std::filesystem::exists(ffmpeg_path, error)) {
+                if (!std::filesystem::is_regular_file(ffmpeg_path, error) || !std::filesystem::exists(ffmpeg_path, error)) {
                     ImGui::PushTextWrapPos(0.0f);
                     ImGui::Text("For the internal recorder feature to work, you need to copy ffmpeg.exe to Geometry Dash installation path.");
                     
@@ -336,7 +354,7 @@ namespace uv::gui {
                     }
 
                     // This is probably too overengineered but I don't care
-                    
+
                     float space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("x").x - ImGui::CalcTextSize("@").x - ImGui::GetStyle().ItemSpacing.x * 4) / 3;
                     float integ;
                     float fract = std::modf(space_without_text, &integ);
@@ -350,17 +368,56 @@ namespace uv::gui {
                     ImGui::SetNextItemWidth(fract >= 0.333f ? integ + 1 : integ);
                     ImGui::DragFloat("##FPS", &render_opts.fps, 1.0f, 1.0f, 9999.9f, "%.2f FPS");
 
-                    ImGui::PushItemWidth(-ImGui::CalcTextSize("Custom Options").x - ImGui::GetStyle().WindowPadding.x); // The longest of them all
+                    ImGui::Spacing();
+
+                    ImGui::PushItemWidth(-ImGui::CalcTextSize("Custom Options?").x - ImGui::GetStyle().WindowPadding.x - ImGui::GetStyle().ItemSpacing.x); // The longest of them all
+
                     ImGui::InputText("Bitrate", &render_opts.bitrate);
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("?");
+                    ImGui::SetItemTooltip(
+                        "Bitrate controls video quality and file size.\n"
+                        "Higher bitrate = better quality, but larger files.\n"
+                        "'M' means megabits per second (e.g. 50M ~ 50 Mbps)."
+                    );
                     ImGui::InputText("Video Codec", &render_opts.codec);
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("?");
+                    ImGui::SetItemTooltip(
+                        "Codec used for video compression.\n"
+                        "Different codecs vary in quality, compatibility, and performance.\n"
+                        "Some codecs (e.g. NVENC, VAAPI) can use the GPU for faster rendering."
+                    );
                     ImGui::InputText("Custom Options", &render_opts.custom_options);
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("?");
+                    ImGui::SetItemTooltip(
+                        "Extra options passed directly to FFmpeg.\n"
+                        "Useful for advanced users to apply filters or effects.\n"
+                        "If unsure, leave the default value."
+                    );
+
                     ImGui::PopItemWidth();
+
+                    ImGui::Spacing();
 
                     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                     ImGui::DragFloat("##Excess render", &render_opts.excess_render, 0.1f, 0.0f, 5.0f, "Render after level ends: %.1fs");
                     audio_opts.excess_render = render_opts.excess_render;
 
                     ImGui::Checkbox("Hide End Level menu", &render_opts.hide_end_level_screen);
+
+                    ImGui::Checkbox("Fade Out", &render_opts.fade_out);
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("?");
+                    ImGui::SetItemTooltip(
+                        "Fades out only the extra rendering beyond the level.\n"
+                        "This is difficult to achieve with FFmpeg filters,\n"
+                        "so it is handled using an in-game overlay."
+                    );
+                    
+                    ImGui::Spacing();
+                    
                     if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
 
                     space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 3) / 4;
@@ -409,8 +466,9 @@ namespace uv::gui {
                     if (ImGui::Button("120 FPS", { space_without_text, 0 })) render_opts.fps = 120.0f;
                     
                     ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
-                    
-                    ImGui::BeginDisabled(video_name.empty() || (record_audio && audio_name.empty()) || (record_audio && !audio_name.empty() && !audio_name.ends_with(".wav")));
+
+                    bool disabled = video_name.empty() || (record_audio && audio_name.empty()) || (record_audio && !audio_name.empty() && !audio_name.ends_with(".wav"));
+                    ImGui::BeginDisabled(disabled);
                     
                     recording = uv::recorder::recording;
                     if (ImGui::Button(recording ? "Stop Recording" : "Start Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
@@ -426,7 +484,7 @@ namespace uv::gui {
                     
                     ImGui::EndDisabled();
 
-                    if ((video_name.empty() || (record_audio && audio_name.empty()) || (record_audio && !audio_name.empty() && !audio_name.ends_with(".wav"))) && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                    if (disabled && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
                         if (video_name.empty()) ImGui::Text("Input the video filename");
                         if (record_audio && audio_name.empty()) ImGui::Text("Input the audio filename");
                         if (record_audio && !audio_name.empty() && !audio_name.ends_with(".wav")) ImGui::Text("Audio can only be in .wav format");
