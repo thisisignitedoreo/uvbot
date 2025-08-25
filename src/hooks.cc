@@ -12,7 +12,6 @@
 #include <Geode/modify/GameObject.hpp>
 #include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/EndLevelLayer.hpp>
-#include <Geode/modify/FMODAudioEngine.hpp>
 #include <Geode/modify/CCDirector.hpp>
 #include <Geode/modify/CCScheduler.hpp>
 #include <Geode/modify/CCEGLView.hpp>
@@ -259,13 +258,6 @@ class $modify(HookedEndLevelLayer, EndLevelLayer) {
     }
 };
 
-class $modify(FMODAudioEngine) {
-    int playEffect(gd::string path, float speed, float p2, float volume) {
-        if (uv::recorder::audio::recording && (path == "explode_11.ogg" || path == "playSound_01.ogg")) return 0;
-        return FMODAudioEngine::playEffect(path, speed, p2, volume);
-    }
-};
-
 class $modify(PlayLayer) {
     void startGame(void) {
         if (uv::recorder::recording || uv::recorder::audio::recording) ready_to_render = true;
@@ -383,13 +375,6 @@ class $modify(GameObject) {
     void determineSlopeDirection() {
         if (debug_update) return;
         GameObject::determineSlopeDirection();
-    }
-};
-
-class $modify(PlayerObject) {
-    void playEndAnimationToPos(cocos2d::CCPoint p1) {
-	this->playEndAnimationToPos(p1);
-	uv::bot::current_state = uv::bot::state::none;
     }
 };
 
