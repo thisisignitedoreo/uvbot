@@ -24,6 +24,7 @@ static bool override_rotation = false;
 static bool level_ended = false;
 static bool ready_to_render = false;
 static bool ready_to_start_audio_render = false;
+static bool started_audio_render = false;
 static std::chrono::steady_clock::time_point level_end_point;
 static EndLevelLayer *ell;
 static std::chrono::steady_clock::time_point last_time, now;
@@ -54,6 +55,7 @@ class $modify(GJBaseGameLayer) {
                 std::chrono::steady_clock::duration excess_amount(std::chrono::milliseconds(static_cast<long long>(uv::recorder::audio::recording_options.excess_render * 1000)));
                 if (std::chrono::steady_clock::now() - level_end_point >= excess_amount) {
                     level_ended = false;
+                    started_audio_render = false;
                     uv::recorder::audio::end();
                     if (uv::recorder::audio::recording_options.merge_audio) {
                         geode::log::debug("Merging audio");
@@ -72,6 +74,10 @@ class $modify(GJBaseGameLayer) {
     }
     
     void update(float dt) {
+        if (!uv::recorder::recording && uv::recorder::audio::recording && ready_to_render && !started_audio_render) {
+            started_audio_render = true;
+            uv::recorder::audio::start();
+        }
         if (uv::recorder::recording && ready_to_render) {
             PlayLayer *pl = PlayLayer::get();
             if (pl) pl->processActivatedAudioTriggers(pl->m_gameState.m_levelTime);

@@ -1,10 +1,6 @@
 
 #include "common.hh"
 
-#define X_DEFINE(type, name, def) type name;
-#define X_SAVE(type, name, def) geode::Mod::get()->setSavedValue<type>(#name, name);
-#define X_LOAD(type, name, def) name = geode::Mod::get()->getSavedValue<type>(#name, def);
-
 namespace uv::hacks {
     bool speedhack;
     bool speedhack_classic;
