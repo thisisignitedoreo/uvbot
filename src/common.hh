@@ -80,7 +80,6 @@ namespace uv {
                 std::string output_path;
                 float music_volume, sfx_volume;
                 float excess_render;
-                bool merge_audio;
             };
             
             void init(options opt);

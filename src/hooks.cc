@@ -4,13 +4,13 @@
 
 #include <Geode/Geode.hpp>
 
+#include <Geode/modify/EndLevelLayer.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
 #include <Geode/modify/CheckpointObject.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/UILayer.hpp>
 #include <Geode/modify/GameObject.hpp>
 #include <Geode/modify/PlayerObject.hpp>
-#include <Geode/modify/EndLevelLayer.hpp>
 #include <Geode/modify/CCDirector.hpp>
 #include <Geode/modify/CCScheduler.hpp>
 #include <Geode/modify/CCEGLView.hpp>
@@ -21,15 +21,73 @@
 static bool debug_update = false;
 static bool override_rotation = false;
 static bool level_ended = false;
-static bool ready_to_render = false;
-static bool ready_to_start_audio_render = false;
 static bool started_audio_render = false;
 static std::chrono::steady_clock::time_point level_end_point;
 static EndLevelLayer *ell;
 static std::chrono::steady_clock::time_point last_time, now;
 static std::chrono::steady_clock::duration accumulator;
 
+class $modify(HookedEndLevelLayer, EndLevelLayer) {
+    struct Fields {
+        cocos2d::CCSprite *black_fg;
+    };
+
+    void update_fade_out(float) {
+        if (m_fields->black_fg) {
+            if (uv::recorder::recording) {
+                std::chrono::steady_clock::duration excess(std::chrono::milliseconds(static_cast<long long>(uv::recorder::recording_options.excess_render * 1000)));
+                float opacity = (std::chrono::steady_clock::now() - level_end_point).count() / static_cast<float>(excess.count());
+                m_fields->black_fg->setOpacity(static_cast<unsigned char>(opacity * 255.0f));
+            } else m_fields->black_fg->setOpacity(0);
+        }
+        if (!uv::recorder::recording) this->setVisible(true);
+    }
+    
+    void showLayer(bool p0) {
+        EndLevelLayer::showLayer(p0);
+
+        if (uv::recorder::recording || uv::recorder::audio::recording) {
+            level_ended = true;
+            level_end_point = std::chrono::steady_clock::now();
+            ell = this;
+
+            PlayLayer *pl = PlayLayer::get();
+            if (uv::recorder::recording && pl) {
+                cocos2d::CCSize wnd_size = cocos2d::CCDirector::sharedDirector()->getWinSize();
+                
+                m_fields->black_fg = cocos2d::CCSprite::create("game_bg_13_001.png");
+                
+                cocos2d::CCSize spr_size = m_fields->black_fg->getContentSize();
+                m_fields->black_fg->setPosition({ wnd_size.width / 2, wnd_size.height / 2 });            
+                m_fields->black_fg->setScaleX(wnd_size.width / spr_size.width * 2.f);
+                m_fields->black_fg->setScaleY(wnd_size.height / spr_size.height * 2.f);
+                m_fields->black_fg->setColor({ 0, 0, 0 });
+                m_fields->black_fg->setOpacity(0);
+                m_fields->black_fg->setZOrder(1000);
+
+                pl->addChild(m_fields->black_fg);
+            }
+        }
+        
+        this->schedule(schedule_selector(HookedEndLevelLayer::update_fade_out), 0.0f);
+        this->setVisible(!uv::recorder::recording || !uv::recorder::recording_options.hide_end_level_screen);
+    }
+};
+
 class $modify(GJBaseGameLayer) {
+    struct Fields {
+        float initial_x = -0.0f;
+        bool ready_to_render = false;
+    };
+
+    /*bool init(void) {
+        if (!GJBaseGameLayer::init()) return false;
+
+        m_fields->initial_x = -0.0f;
+        
+        return true;
+    }*/
+    
     void handleButton(bool down, int button, bool isPlayer1) {
         if (uv::bot::button(down, button, isPlayer1)) {
             GJBaseGameLayer::handleButton(down, button, isPlayer1);
@@ -37,35 +95,21 @@ class $modify(GJBaseGameLayer) {
     }
     
     void processCommands(float dt) {
-        if (uv::recorder::audio::recording) {
-            if (level_ended) {
-                std::chrono::steady_clock::duration excess_amount(std::chrono::milliseconds(static_cast<long long>(uv::recorder::audio::recording_options.excess_render * 1000)));
-                if (std::chrono::steady_clock::now() - level_end_point >= excess_amount) {
-                    level_ended = false;
-                    started_audio_render = false;
-                    uv::recorder::audio::end();
-                    if (uv::recorder::audio::recording_options.merge_audio) {
-                        geode::log::debug("Merging audio");
-                        std::stringstream output;
-                        std::string input_video = uv::recorder::recording_options.output_path;
-                        output << input_video.substr(0, input_video.rfind(".")) << " +Music";
-                        output << input_video.substr(input_video.rfind("."), input_video.size());
-                        uv::recorder::merge(input_video, uv::recorder::audio::recording_options.output_path, output.str());
-                    }
-                }
-            }
-        }
-        
         GJBaseGameLayer::processCommands(dt);
         uv::bot::update_input(this, dt);
     }
     
     void update(float dt) {
-        if (!uv::recorder::recording && uv::recorder::audio::recording && ready_to_render && !started_audio_render) {
+        // Weird hack to bypass start level lil delay
+        if (m_fields->initial_x == -0.0f) m_fields->initial_x = this->m_player1->m_position.x;
+        m_fields->ready_to_render = m_fields->initial_x < this->m_player1->m_position.x;
+        
+        if (!uv::recorder::recording && uv::recorder::audio::recording && !started_audio_render && m_fields->ready_to_render) {
             started_audio_render = true;
             uv::recorder::audio::start();
         }
-        if (uv::recorder::recording && ready_to_render) {
+        
+        if (uv::recorder::recording && m_fields->ready_to_render) {
             PlayLayer *pl = PlayLayer::get();
             if (pl) pl->processActivatedAudioTriggers(pl->m_gameState.m_levelTime);
             uv::recorder::update();
@@ -74,13 +118,17 @@ class $modify(GJBaseGameLayer) {
                 if (std::chrono::steady_clock::now() - level_end_point >= excess_amount) {
                     level_ended = false;
                     uv::recorder::end();
-                    ready_to_render = false;
-                    PlayLayer *pl = PlayLayer::get();
-                    if (pl && uv::recorder::audio::recording) {
-                        ell->exitLayer(nullptr);
-                        pl->resetLevel();
-                        uv::recorder::audio::start();
-                    }
+                }
+            }
+        }
+        
+        if (uv::recorder::audio::recording) {
+            if (level_ended) {
+                std::chrono::steady_clock::duration excess_amount(std::chrono::milliseconds(static_cast<long long>(uv::recorder::audio::recording_options.excess_render * 1000)));
+                if (std::chrono::steady_clock::now() - level_end_point >= excess_amount) {
+                    level_ended = false;
+                    started_audio_render = false;
+                    uv::recorder::audio::end();
                 }
             }
         }
@@ -126,6 +174,7 @@ class $modify(GJBaseGameLayer) {
             if (colorID == 1000) copy_color = {0, 0, 0};
             else if (colorID == 1001) copy_color = {0, 0, 0};
             else if (colorID == 1002) copy_color = {255, 255, 255};
+            else if (colorID == 1009) copy_color = {0, 0, 0};
             else if (colorID == 1013 || colorID == 1014) copy_color = {0, 0, 0};
             else copy_color = {255, 255, 255};
         }
@@ -204,59 +253,7 @@ class $modify(PlayerObject) {
     }
 };
 
-class $modify(HookedEndLevelLayer, EndLevelLayer) {
-    struct Fields {
-        cocos2d::CCSprite *black_fg;
-    };
-
-    void update_fade_out(float) {
-        if (m_fields->black_fg) {
-            if (uv::recorder::recording) {
-                std::chrono::steady_clock::duration excess(std::chrono::milliseconds(static_cast<long long>(uv::recorder::recording_options.excess_render * 1000)));
-                float opacity = (std::chrono::steady_clock::now() - level_end_point).count() / static_cast<float>(excess.count());
-                m_fields->black_fg->setOpacity(static_cast<unsigned char>(opacity * 255.0f));
-            } else m_fields->black_fg->setOpacity(0);
-        }
-        if (!uv::recorder::recording && !uv::recorder::audio::recording) this->setVisible(true);
-    }
-    
-    void showLayer(bool p0) {
-        EndLevelLayer::showLayer(p0);
-
-        if (uv::recorder::recording || uv::recorder::audio::recording) {
-            level_ended = true;
-            level_end_point = std::chrono::steady_clock::now();
-            ell = this;
-
-            PlayLayer *pl = PlayLayer::get();
-            if (pl) {
-                cocos2d::CCSize wnd_size = cocos2d::CCDirector::sharedDirector()->getWinSize();
-                
-                m_fields->black_fg = cocos2d::CCSprite::create("game_bg_13_001.png");
-                
-                cocos2d::CCSize spr_size = m_fields->black_fg->getContentSize();
-                m_fields->black_fg->setPosition({ wnd_size.width / 2, wnd_size.height / 2 });            
-                m_fields->black_fg->setScaleX(wnd_size.width / spr_size.width * 2.f);
-                m_fields->black_fg->setScaleY(wnd_size.height / spr_size.height * 2.f);
-                m_fields->black_fg->setColor({ 0, 0, 0 });
-                m_fields->black_fg->setOpacity(0);
-                m_fields->black_fg->setZOrder(1000);
-
-                pl->addChild(m_fields->black_fg);
-            }
-        }
-        
-        this->schedule(schedule_selector(HookedEndLevelLayer::update_fade_out), 0.0f);
-        this->setVisible(!uv::recorder::recording || !uv::recorder::recording_options.hide_end_level_screen);
-    }
-};
-
 class $modify(PlayLayer) {
-    void startGame(void) { 
-        if (uv::recorder::recording || uv::recorder::audio::recording) ready_to_render = true;
-        PlayLayer::startGame();
-    }
-    
     void resetLevel(void) {
         PlayLayer::resetLevel();
         uv::bot::reset();
@@ -284,7 +281,7 @@ class $modify(PlayLayer) {
 
     void updateProgressbar(void) {
         PlayLayer::updateProgressbar();
-        
+
         // 0166 -> Is "Show Hitboxes" option on?
         if (uv::hacks::hitboxes && !this->m_isPracticeMode || !GameManager::get()->getGameVariable("0166")) PlayLayer::updateDebugDraw();
         this->m_debugDrawNode->setVisible(uv::hacks::hitboxes);

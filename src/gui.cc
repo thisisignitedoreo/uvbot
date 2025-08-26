@@ -41,8 +41,7 @@ namespace uv::gui {
         .music_volume = 1.0f,
         .sfx_volume = 1.0f,
         .excess_render = 3.0f,
-        .merge_audio = false,
-    };
+   };
     
     static const std::filesystem::path ffmpeg_path = geode::dirs::getGameDir() / "ffmpeg.exe";
 
@@ -338,169 +337,167 @@ namespace uv::gui {
                     if (ImGui::Button("Open GD folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(geode::dirs::getGameDir());
                     ImGui::PopTextWrapPos();
                 } else {
-                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                    if (ImGui::InputTextWithHint("##Video Filename", "Video Filename (e.g. file.mp4)", &video_name)) {
-                        render_opts.output_path = geode::utils::string::pathToString(showcase_path / video_name);
-                    }
+                    if (ImGui::BeginTabBar("uvBot Recorder Sub-TabBar")) {
+                        if (ImGui::BeginTabItem("Video")) {
+                            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                            if (ImGui::InputTextWithHint("##Video Filename", "Video Filename (e.g. file.mp4)", &video_name)) {
+                                render_opts.output_path = geode::utils::string::pathToString(showcase_path / video_name);
+                            }
 
-                    // This is probably too overengineered but I don't care
+                            // This is probably too overengineered but I don't care
 
-                    float space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("x").x - ImGui::CalcTextSize("@").x - ImGui::GetStyle().ItemSpacing.x * 4) / 3;
-                    float integ;
-                    float fract = std::modf(space_without_text, &integ);
-                    
-                    ImGui::SetNextItemWidth(integ);
-                    ImGui::DragInt("##Width", &render_opts.width, 1, 1, 9999, "%upx");
-                    ImGui::SameLine(); ImGui::Text("x"); ImGui::SameLine();
-                    ImGui::SetNextItemWidth(fract >= 0.666f ? integ + 1 : integ);
-                    ImGui::DragInt("##Height", &render_opts.height, 1, 1, 9999, "%upx");
-                    ImGui::SameLine(); ImGui::Text("@"); ImGui::SameLine();
-                    ImGui::SetNextItemWidth(fract >= 0.333f ? integ + 1 : integ);
-                    ImGui::DragFloat("##FPS", &render_opts.fps, 1.0f, 1.0f, 9999.9f, "%.2f FPS");
+                            float space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("x").x - ImGui::CalcTextSize("@").x - ImGui::GetStyle().ItemSpacing.x * 4) / 3;
+                            float integ;
+                            float fract = std::modf(space_without_text, &integ);
+                            
+                            ImGui::SetNextItemWidth(integ);
+                            ImGui::DragInt("##Width", &render_opts.width, 1, 1, 9999, "%upx");
+                            ImGui::SameLine(); ImGui::Text("x"); ImGui::SameLine();
+                            ImGui::SetNextItemWidth(fract >= 0.666f ? integ + 1 : integ);
+                            ImGui::DragInt("##Height", &render_opts.height, 1, 1, 9999, "%upx");
+                            ImGui::SameLine(); ImGui::Text("@"); ImGui::SameLine();
+                            ImGui::SetNextItemWidth(fract >= 0.333f ? integ + 1 : integ);
+                            ImGui::DragFloat("##FPS", &render_opts.fps, 1.0f, 1.0f, 9999.9f, "%.2f FPS");
 
-                    ImGui::Spacing();
+                            ImGui::Spacing();
 
-                    ImGui::PushItemWidth(-ImGui::CalcTextSize("Custom Options?").x - ImGui::GetStyle().WindowPadding.x - ImGui::GetStyle().ItemSpacing.x); // The longest of them all
+                            ImGui::PushItemWidth(-ImGui::CalcTextSize("Custom Options?").x - ImGui::GetStyle().WindowPadding.x - ImGui::GetStyle().ItemSpacing.x); // The longest of them all
 
-                    ImGui::InputText("Bitrate", &render_opts.bitrate);
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("?");
-                    ImGui::SetItemTooltip(
-                        "Bitrate controls video quality and file size.\n"
-                        "Higher bitrate = better quality, but larger files.\n"
-                        "'M' means megabits per second (e.g. 50M ~ 50 Mbps)."
-                    );
-                    ImGui::InputText("Video Codec", &render_opts.codec);
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("?");
-                    ImGui::SetItemTooltip(
-                        "Codec used for video compression.\n"
-                        "Different codecs vary in quality, compatibility, and performance.\n"
-                        "Some codecs (e.g. NVENC, VAAPI) can use the GPU for faster rendering."
-                    );
-                    ImGui::InputText("Custom Options", &render_opts.custom_options);
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("?");
-                    ImGui::SetItemTooltip(
-                        "Extra options passed directly to FFmpeg.\n"
-                        "Useful for advanced users to apply filters or effects.\n"
-                        "If unsure, leave the default value."
-                    );
+                            ImGui::InputText("Bitrate", &render_opts.bitrate);
+                            ImGui::SameLine();
+                            ImGui::TextDisabled("?");
+                            ImGui::SetItemTooltip(
+                                "Bitrate controls video quality and file size.\n"
+                                "Higher bitrate = better quality, but larger files.\n"
+                                "'M' means megabits per second (e.g. 50M ~ 50 Mbps)."
+                            );
+                            ImGui::InputText("Video Codec", &render_opts.codec);
+                            ImGui::SameLine();
+                            ImGui::TextDisabled("?");
+                            ImGui::SetItemTooltip(
+                                "Codec used for video compression.\n"
+                                "Different codecs vary in quality, compatibility, and performance.\n"
+                                "Some codecs (e.g. NVENC, VAAPI) can use the GPU for faster rendering."
+                            );
+                            ImGui::InputText("Custom Options", &render_opts.custom_options);
+                            ImGui::SameLine();
+                            ImGui::TextDisabled("?");
+                            ImGui::SetItemTooltip(
+                                "Extra options passed directly to FFmpeg.\n"
+                                "Useful for advanced users to apply filters or effects.\n"
+                                "If unsure, leave the default value."
+                            );
 
-                    ImGui::PopItemWidth();
+                            ImGui::PopItemWidth();
 
-                    ImGui::Spacing();
+                            ImGui::Spacing();
 
-                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                    ImGui::DragFloat("##Excess render", &render_opts.excess_render, 0.1f, 0.0f, 5.0f, "Render after level ends: %.1fs");
-                    audio_opts.excess_render = render_opts.excess_render;
+                            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                            ImGui::DragFloat("##Excess render", &render_opts.excess_render, 0.1f, 0.0f, 5.0f, "Render after level ends: %.1fs");
 
-                    ImGui::Checkbox("Hide End Level menu", &render_opts.hide_end_level_screen);
+                            ImGui::Checkbox("Hide End Level menu", &render_opts.hide_end_level_screen);
 
-                    ImGui::Checkbox("Fade Out", &render_opts.fade_out);
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("?");
-                    ImGui::SetItemTooltip(
-                        "Fades out only the extra rendering beyond the level.\n"
-                        "This is difficult to achieve with FFmpeg filters,\n"
-                        "so it is handled using an in-game overlay."
-                    );
-                    
-                    ImGui::Spacing();
-                    
-                    if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
+                            ImGui::Checkbox("Fade Out", &render_opts.fade_out);
+                            ImGui::SameLine();
+                            ImGui::TextDisabled("?");
+                            ImGui::SetItemTooltip(
+                            "Fades out only the extra rendering beyond the level.\n"
+                            "This is difficult to achieve with FFmpeg filters,\n"
+                            "so it is handled using an in-game overlay."
+                            );
+                            
+                            ImGui::Spacing();
+                            
+                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
 
-                    space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 3) / 4;
+                            space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 3) / 4;
 
-                    ImGui::SeparatorText("Audio");
+                            // Thanks toby for bitrate values
+                            
+                            ImGui::SeparatorText("Presets");
+                            
+                            if (ImGui::Button("720p", { space_without_text, 0 })) { render_opts.bitrate = "25M"; render_opts.width = 1280; render_opts.height = 720; }
+                            ImGui::SameLine();
+                            if (ImGui::Button("1080p", { space_without_text, 0 })) { render_opts.bitrate = "50M"; render_opts.width = 1920; render_opts.height = 1080; }
+                            ImGui::SameLine();
+                            if (ImGui::Button("2K", { space_without_text, 0 })) { render_opts.bitrate = "70M"; render_opts.width = 2560; render_opts.height = 1440; }
+                            ImGui::SameLine();
+                            if (ImGui::Button("4K", { space_without_text, 0 })) { render_opts.bitrate = "80M"; render_opts.width = 3840; render_opts.height = 2160; }
+                            
+                            if (ImGui::Button("30 FPS", { space_without_text, 0 })) render_opts.fps = 30.0f;
+                            ImGui::SameLine();
+                            if (ImGui::Button("60 FPS", { space_without_text, 0 })) render_opts.fps = 60.0f;
+                            ImGui::SameLine();
+                            if (ImGui::Button("90 FPS", { space_without_text, 0 })) render_opts.fps = 90.0f;
+                            ImGui::SameLine();
+                            if (ImGui::Button("120 FPS", { space_without_text, 0 })) render_opts.fps = 120.0f;
+                            
+                            ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
 
-                    ImGui::Checkbox("Record Audio", &record_audio);
-                    ImGui::SameLine();
-                    ImGui::Checkbox("Merge", &merge_audio);
-                    audio_opts.merge_audio = merge_audio;
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("?");
+                            bool disabled = video_name.empty();
+                            ImGui::BeginDisabled(disabled);
+                            
+                            recording = uv::recorder::recording;
+                            if (ImGui::Button(recording ? "Stop Recording" : "Start Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
+                                recording = !recording;
+                                if (recording) {
+                                    uv::recorder::start(render_opts);
+                                } else {
+                                    uv::recorder::end();
+                                }
+                            }
+                            
+                            ImGui::EndDisabled();
 
-                    ImGui::SetItemTooltip("Audio will be recorded on the next attempt\nMerging will automatically combine video and audio when both are done");
+                            if (disabled && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                                if (video_name.empty()) ImGui::Text("Input the video filename");
+                                ImGui::EndTooltip();
+                            }
 
-                    if (record_audio) {
-                        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                        if (ImGui::InputTextWithHint("##Audio Filename", "Audio Filename (e.g. file.wav)", &audio_name)) {
-                            audio_opts.output_path = geode::utils::string::pathToString(showcase_path / audio_name);
+                            ImGui::EndTabItem();
                         }
-                        
-                        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                        ImGui::DragFloat("##Music volume", &audio_opts.music_volume, 0.01f, 0.0f, 1.0f, "Music volume: %.2f", ImGuiSliderFlags_AlwaysClamp);
-                        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                        ImGui::DragFloat("##SFX volume", &audio_opts.sfx_volume, 0.01f, 0.0f, 1.0f, "SFX volume: %.2f", ImGuiSliderFlags_AlwaysClamp);
-                    }
 
-                    // Thanks toby for bitrate values
-                    
-                    ImGui::SeparatorText("Presets");
-                    
-                    if (ImGui::Button("720p", { space_without_text, 0 })) { render_opts.bitrate = "25M"; render_opts.width = 1280; render_opts.height = 720; }
-                    ImGui::SameLine();
-                    if (ImGui::Button("1080p", { space_without_text, 0 })) { render_opts.bitrate = "50M"; render_opts.width = 1920; render_opts.height = 1080; }
-                    ImGui::SameLine();
-                    if (ImGui::Button("2K", { space_without_text, 0 })) { render_opts.bitrate = "70M"; render_opts.width = 2560; render_opts.height = 1440; }
-                    ImGui::SameLine();
-                    if (ImGui::Button("4K", { space_without_text, 0 })) { render_opts.bitrate = "80M"; render_opts.width = 3840; render_opts.height = 2160; }
-                    
-                    if (ImGui::Button("30 FPS", { space_without_text, 0 })) render_opts.fps = 30.0f;
-                    ImGui::SameLine();
-                    if (ImGui::Button("60 FPS", { space_without_text, 0 })) render_opts.fps = 60.0f;
-                    ImGui::SameLine();
-                    if (ImGui::Button("90 FPS", { space_without_text, 0 })) render_opts.fps = 90.0f;
-                    ImGui::SameLine();
-                    if (ImGui::Button("120 FPS", { space_without_text, 0 })) render_opts.fps = 120.0f;
-                    
-                    ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                        if (ImGui::BeginTabItem("Audio")) {
+                            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                            if (ImGui::InputTextWithHint("##Audio Filename", "Audio Filename (e.g. file.wav)", &audio_name)) {
+                                audio_opts.output_path = geode::utils::string::pathToString(showcase_path / audio_name);
+                            }
 
-                    bool disabled = video_name.empty() || (record_audio && audio_name.empty()) || (record_audio && !audio_name.empty() && !audio_name.ends_with(".wav"));
-                    ImGui::BeginDisabled(disabled);
-                    
-                    recording = uv::recorder::recording;
-                    if (ImGui::Button(recording ? "Stop Recording" : "Start Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
-                        recording = !recording;
-                        if (recording) {
-                            uv::recorder::start(render_opts);
-                            if (record_audio) uv::recorder::audio::init(audio_opts);
-                        } else {
-                            uv::recorder::end();
-                            if (record_audio) uv::recorder::audio::end();
+                            ImGui::Spacing();
+
+                            ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x);
+                            ImGui::DragFloat("##Music volume", &audio_opts.music_volume, 0.01f, 0.0f, 1.0f, "Music volume: %.2f");
+                            ImGui::DragFloat("##SFX volume", &audio_opts.sfx_volume, 0.01f, 0.0f, 1.0f, "SFX volume: %.2f");
+                            ImGui::DragFloat("##Excess render", &audio_opts.excess_render, 0.1f, 0.0f, 5.0f, "Render after level ends: %.1fs");
+                            ImGui::PopItemWidth();
+
+                            ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                            
+                            bool disabled = audio_name.empty() || !audio_name.ends_with(".wav");
+                            ImGui::BeginDisabled(disabled);
+                            
+                            audio_recording = uv::recorder::audio::recording;
+                            if (ImGui::Button(audio_recording ? "Stop Audio Recording" : "Start Audio Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
+                                audio_recording = !audio_recording;
+                                if (audio_recording) {
+                                    uv::recorder::audio::init(audio_opts);
+                                } else {
+                                    uv::recorder::audio::end();
+                                }
+                            }
+                            
+                            ImGui::EndDisabled();
+
+                            if (disabled && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                                if (audio_name.empty()) ImGui::Text("Input the audio filename");
+                                else if (!audio_name.ends_with(".wav")) ImGui::Text("Only .wav format is supported right now");
+                                ImGui::EndTooltip();
+                            }
+
+                            ImGui::EndTabItem();
                         }
-                    }
-                    
-                    ImGui::EndDisabled();
 
-                    if (disabled && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
-                        if (video_name.empty()) ImGui::Text("Input the video filename");
-                        if (record_audio && audio_name.empty()) ImGui::Text("Input the audio filename");
-                        if (record_audio && !audio_name.empty() && !audio_name.ends_with(".wav")) ImGui::Text("Audio can only be in .wav format");
-                        ImGui::EndTooltip();
-                    }
-                    
-                    disabled = !record_audio || audio_name.empty() || !audio_name.ends_with(".wav");
-                    ImGui::BeginDisabled(disabled);
-                    
-                    audio_recording = uv::recorder::audio::recording;
-                    if (ImGui::Button(audio_recording ? "Stop Audio Recording" : "Start Audio Recording", { ImGui::GetContentRegionAvail().x, 0 })) {
-                        audio_recording = !audio_recording;
-                        if (audio_recording) {
-                            uv::recorder::audio::init(audio_opts);
-                        } else {
-                            uv::recorder::audio::end();
-                        }
-                    }
-                    
-                    ImGui::EndDisabled();
-
-                    if (disabled && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
-                        if (!record_audio) ImGui::Text("To start recording audio, tick the checkbox");
-                        else if (audio_name.empty()) ImGui::Text("Input the audio filename");
-                        else if (!audio_name.ends_with(".wav")) ImGui::Text("Audio can only be in .wav format");
-                        ImGui::EndTooltip();
+                        ImGui::EndTabBar();
                     }
                 }
                 
