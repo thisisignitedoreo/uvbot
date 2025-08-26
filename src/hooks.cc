@@ -4,7 +4,6 @@
 
 #include <Geode/Geode.hpp>
 
-#include <Geode/modify/CCFileUtils.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
 #include <Geode/modify/CheckpointObject.hpp>
 #include <Geode/modify/PlayLayer.hpp>
@@ -29,18 +28,6 @@ static std::chrono::steady_clock::time_point level_end_point;
 static EndLevelLayer *ell;
 static std::chrono::steady_clock::time_point last_time, now;
 static std::chrono::steady_clock::duration accumulator;
-
-class $modify(cocos2d::CCFileUtils) {
-    gd::string fullPathForFilename(char const *filename, bool skip_suffix) {
-        /*geode::log::debug("cocos2d::CCFileUtils({}, {})", filename, skip_suffix);
-        auto& fu = *this;
-        for (auto const& p : fu.getSearchPaths())
-        geode::log::debug(" searchPath: {}", p);
-        for (auto const& r : fu.getSearchResolutionsOrder())
-        geode::log::debug(" resOrder:  {}", r);*/
-        return cocos2d::CCFileUtils::fullPathForFilename(filename, skip_suffix);
-    }
-};
 
 class $modify(GJBaseGameLayer) {
     void handleButton(bool down, int button, bool isPlayer1) {
@@ -265,7 +252,7 @@ class $modify(HookedEndLevelLayer, EndLevelLayer) {
 };
 
 class $modify(PlayLayer) {
-    void startGame(void) {
+    void startGame(void) { 
         if (uv::recorder::recording || uv::recorder::audio::recording) ready_to_render = true;
         PlayLayer::startGame();
     }

@@ -30,14 +30,14 @@ namespace uv::gui {
         .excess_render = 3.0f,
         .codec = "libx264",
         .bitrate = "50M",
-        .output_path = geode::utils::pathToString(showcase_path / ".mp4"),
+        .output_path = geode::utils::string::pathToString(showcase_path / ".mp4"),
         .custom_options = "-pix_fmt yuv420p -vf \"vflip\"",
         .hide_end_level_screen = true,
         .fade_out = false,
     };
     
     uv::recorder::audio::options audio_opts = {
-        .output_path = geode::utils::pathToString(showcase_path / ".wav"),
+        .output_path = geode::utils::string::pathToString(showcase_path / ".wav"),
         .music_volume = 1.0f,
         .sfx_volume = 1.0f,
         .excess_render = 3.0f,
@@ -53,7 +53,7 @@ namespace uv::gui {
         // OpenSans font
         // https://fonts.google.com/specimen/Open+Sans
         
-        io.Fonts->AddFontFromFileTTF(geode::utils::pathToString(geode::Mod::get()->getResourcesDir() / "OpenSans-Regular.ttf")).c_str(), 22.0f);
+        io.Fonts->AddFontFromFileTTF(geode::utils::string::pathToString(geode::Mod::get()->getResourcesDir() / "OpenSans-Regular.ttf").c_str(), 22.0f);
         
         // Windark style by DestroyerDarkNess from ImThemes
         // And some small changes
@@ -240,8 +240,8 @@ namespace uv::gui {
                 std::error_code error;
                 for (auto const &dir_entry : std::filesystem::directory_iterator(macro_path, error)) {
                     not_empty = true; // I am too lazy to do this the right way
-                    if (dir_entry.is_regular_file() && geode::utils::pathToString(dir_entry.path()).ends_with(".uv")) {
-                        std::string path = geode::utils::pathToString(dir_entry.path());
+                    if (dir_entry.is_regular_file() && geode::utils::string::pathToString(dir_entry.path()).ends_with(".uv")) {
+                        std::string path = geode::utils::string::pathToString(dir_entry.path());
                         int from = path.rfind(dir_entry.path().preferred_separator);
                         if (from == std::string::npos) from = 0;
                         std::string name = path.substr(from + 1, path.size() - from - 4);
@@ -340,7 +340,7 @@ namespace uv::gui {
                 } else {
                     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                     if (ImGui::InputTextWithHint("##Video Filename", "Video Filename (e.g. file.mp4)", &video_name)) {
-                        render_opts.output_path = geode::utils::pathToString(showcase_path / video_name);
+                        render_opts.output_path = geode::utils::string::pathToString(showcase_path / video_name);
                     }
 
                     // This is probably too overengineered but I don't care
@@ -426,7 +426,7 @@ namespace uv::gui {
                     if (record_audio) {
                         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                         if (ImGui::InputTextWithHint("##Audio Filename", "Audio Filename (e.g. file.wav)", &audio_name)) {
-                            audio_opts.output_path = geode::utils::pathToStrin(gshowcase_path / audio_name);
+                            audio_opts.output_path = geode::utils::string::pathToString(showcase_path / audio_name);
                         }
                         
                         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
