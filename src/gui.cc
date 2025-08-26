@@ -45,16 +45,6 @@ namespace uv::gui {
     };
     
     static const std::filesystem::path ffmpeg_path = geode::dirs::getGameDir() / "ffmpeg.exe";
-    
-    inline std::string trim_string(std::string s) {
-        s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-            return !std::isspace(ch);
-        }));
-        s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
-            return !std::isspace(ch);
-        }).base(), s.end());
-        return s;
-    }
 
     void setup(void) {
         ImGuiIO &io = ImGui::GetIO();
@@ -222,13 +212,13 @@ namespace uv::gui {
                 float button_widths = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2) / 3;
                 
                 ImGui::BeginDisabled(macro_name.empty());
-                if (ImGui::Button("Save", { button_widths, 0 })) uv::bot::save(trim_string(macro_name));
+                if (ImGui::Button("Save", { button_widths, 0 })) uv::bot::save(geode::utils::string::trim(macro_name));
                 if (macro_name.empty() && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
                     ImGui::Text("To save a macro, input its name");
                     ImGui::EndTooltip();
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Load", { button_widths, 0 })) uv::bot::load(trim_string(macro_name)); 
+                if (ImGui::Button("Load", { button_widths, 0 })) uv::bot::load(geode::utils::string::trim(macro_name)); 
                 if (macro_name.empty() && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
                     ImGui::Text("To load a macro, input its name");
                     ImGui::EndTooltip();
@@ -436,7 +426,7 @@ namespace uv::gui {
                     if (record_audio) {
                         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                         if (ImGui::InputTextWithHint("##Audio Filename", "Audio Filename (e.g. file.wav)", &audio_name)) {
-                            audio_opts.output_path = geode::utils::pathToString(showcase_path / audio_name);
+                            audio_opts.output_path = geode::utils::pathToStrin(gshowcase_path / audio_name);
                         }
                         
                         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
