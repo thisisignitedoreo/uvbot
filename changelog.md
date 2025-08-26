@@ -1,4 +1,10 @@
 
+# v0.1.1-beta
+
+- Replace a few functions to the geode builtins to be compliant with index
+  guidelines
+- Add a button to just render the audio
+
 # v0.1.0-beta
 
 - Take internal recorder out of alpha, it is now stable
