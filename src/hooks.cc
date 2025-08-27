@@ -6,6 +6,7 @@
 
 #include <Geode/modify/EndLevelLayer.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
+#include <Geode/modify/LevelInfoLayer.hpp>
 #include <Geode/modify/CheckpointObject.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/UILayer.hpp>
@@ -180,6 +181,19 @@ class $modify(GJBaseGameLayer) {
         }
 
         GJBaseGameLayer::updateColor(copy_color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
+    }
+};
+
+class $modify(LevelInfoLayer) {
+    LevelInfoLayer *create(GJGameLevel *level, bool challenge) {
+        if (uv::hacks::copy_hack) m_level->m_password = 1;
+
+        return LevelInfoLayer::create(level, challenge);
+    }
+
+    void tryCloneLevel(cocos2d::CCObject *sender) {
+        if (uv::hacks::copy_hack) m_level->m_password = 1;
+        LevelInfoLayer::tryCloneLevel(sender);
     }
 };
 

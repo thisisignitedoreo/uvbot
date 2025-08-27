@@ -90,7 +90,9 @@ namespace uv {
             extern options recording_options;
         }
 
-        void merge(std::string video, std::string audio, std::string output);
+        void merge(std::string video, std::string audio, std::string output, std::string args);
+        void raw(std::string args);
+        bool process_done(void);
     }
     
     namespace hacks {
@@ -109,6 +111,7 @@ namespace uv {
         extern std::vector<float> hitboxes_color_player, hitboxes_color_fill_player;
         extern bool layout_mode;
         extern bool practice_fix;
+        extern bool copy_hack;
 
         void load(void);
         void save(void);

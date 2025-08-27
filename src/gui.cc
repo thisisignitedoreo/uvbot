@@ -14,6 +14,11 @@ namespace uv::gui {
     static bool show_demo = false, show_style_editor = false, pushed_colors = false, hitboxes_colors_opened = false;
     
     static std::string macro_name, video_name, audio_name;
+    
+    static std::string merge_video_name, merge_audio_name, merge_output_name;
+    static std::string merge_video_path, merge_audio_path, merge_output_path;
+    static std::string merge_arguments = "-map 0:v:0 -map 1:a:0 -c:v copy -c:a copy";
+    static std::string raw_arguments = "-i \"{showcases}/file.mp4\" \"{showcases}/file.mkv\"";
 
     static const std::filesystem::path macro_path = geode::Mod::get()->getSaveDir() / "Macros";
     static const std::filesystem::path showcase_path = geode::Mod::get()->getSaveDir() / "Showcases";
@@ -212,13 +217,13 @@ namespace uv::gui {
                 
                 ImGui::BeginDisabled(macro_name.empty());
                 if (ImGui::Button("Save", { button_widths, 0 })) uv::bot::save(geode::utils::string::trim(macro_name));
-                if (macro_name.empty() && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                if (macro_name.empty() && ImGui::BeginItemTooltip()) {
                     ImGui::Text("To save a macro, input its name");
                     ImGui::EndTooltip();
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Load", { button_widths, 0 })) uv::bot::load(geode::utils::string::trim(macro_name)); 
-                if (macro_name.empty() && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                if (macro_name.empty() && ImGui::BeginItemTooltip()) {
                     ImGui::Text("To load a macro, input its name");
                     ImGui::EndTooltip();
                 }
@@ -320,9 +325,10 @@ namespace uv::gui {
                 }
                     
                 ImGui::SeparatorText("Cosmetic");
-                
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::Checkbox("Layout Mode", &uv::hacks::layout_mode);
+                    
+                ImGui::SeparatorText("Other");
+                ImGui::Checkbox("Copy Hack", &uv::hacks::copy_hack);
                 
                 ImGui::EndTabItem();
             }
@@ -401,9 +407,9 @@ namespace uv::gui {
                             ImGui::SameLine();
                             ImGui::TextDisabled("?");
                             ImGui::SetItemTooltip(
-                            "Fades out only the extra rendering beyond the level.\n"
-                            "This is difficult to achieve with FFmpeg filters,\n"
-                            "so it is handled using an in-game overlay."
+                                "Fades out only the extra rendering beyond the level.\n"
+                                "This is difficult to achieve with FFmpeg filters,\n"
+                                "so it is handled using an in-game overlay."
                             );
                             
                             ImGui::Spacing();
@@ -447,12 +453,12 @@ namespace uv::gui {
                                 }
                             }
                             
-                            ImGui::EndDisabled();
-
-                            if (disabled && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                            if (disabled && ImGui::BeginItemTooltip()) {
                                 if (video_name.empty()) ImGui::Text("Input the video filename");
                                 ImGui::EndTooltip();
                             }
+
+                            ImGui::EndDisabled();
 
                             ImGui::EndTabItem();
                         }
@@ -470,6 +476,10 @@ namespace uv::gui {
                             ImGui::DragFloat("##SFX volume", &audio_opts.sfx_volume, 0.01f, 0.0f, 1.0f, "SFX volume: %.2f");
                             ImGui::DragFloat("##Excess render", &audio_opts.excess_render, 0.1f, 0.0f, 5.0f, "Render after level ends: %.1fs");
                             ImGui::PopItemWidth();
+                            
+                            ImGui::Spacing();
+                            
+                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
 
                             ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
                             
@@ -486,13 +496,103 @@ namespace uv::gui {
                                 }
                             }
                             
-                            ImGui::EndDisabled();
-
-                            if (disabled && ImGui::IsItemHovered() && ImGui::BeginTooltip()) {
+                            if (disabled && ImGui::BeginItemTooltip()) {
                                 if (audio_name.empty()) ImGui::Text("Input the audio filename");
                                 else if (!audio_name.ends_with(".wav")) ImGui::Text("Only .wav format is supported right now");
                                 ImGui::EndTooltip();
                             }
+
+                            ImGui::EndDisabled();
+
+                            ImGui::EndTabItem();
+                        }
+
+                        if (ImGui::BeginTabItem("Merge")) {
+                            ImGui::BeginDisabled(!uv::recorder::process_done());
+                            
+                            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                            if (ImGui::InputTextWithHint("##Merge Video Filename", "Video Filename (e.g. file.mp4)", &merge_video_name)) {
+                                merge_video_path = geode::utils::string::pathToString(showcase_path / merge_video_name);
+                            }
+                            
+                            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                            if (ImGui::InputTextWithHint("##Merge Audio Filename", "Audio Filename (e.g. file.wav)", &merge_audio_name)) {
+                                merge_audio_path = geode::utils::string::pathToString(showcase_path / merge_audio_name);
+                            }
+                            
+                            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                            if (ImGui::InputTextWithHint("##Merge Output Filename", "Output Filename (e.g. file +music.mp4)", &merge_output_name)) {
+                                merge_output_path = geode::utils::string::pathToString(showcase_path / merge_audio_name);
+                            }
+                            
+                            ImGui::Spacing();
+
+                            ImGui::SetNextItemWidth(-ImGui::CalcTextSize("Arguments").x - ImGui::GetStyle().WindowPadding.x);
+                            ImGui::InputText("Arguments", &merge_arguments);
+                           
+                            ImGui::Spacing();
+                            
+                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
+
+                            ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+
+                            std::error_code error;
+                            bool disabled = merge_video_name.empty() || merge_audio_name.empty();
+                            disabled = disabled || !std::filesystem::exists(merge_video_path, error) || !std::filesystem::exists(merge_audio_path, error);
+                            disabled = disabled || !std::filesystem::is_regular_file(merge_video_path, error) || !std::filesystem::is_regular_file(merge_audio_path, error);
+
+                            ImGui::BeginDisabled(disabled);
+                            
+                            if (ImGui::Button("Merge", { ImGui::GetContentRegionAvail().x, 0 })) uv::recorder::merge(merge_video_path, merge_audio_path, merge_output_path, merge_arguments);
+                            
+                            if (disabled && ImGui::BeginItemTooltip()) {
+                                if (merge_video_name.empty()) ImGui::Text("Input the video filename");
+                                else if (!std::filesystem::exists(merge_video_path, error)) ImGui::Text("No video with that filename");
+                                else if (!std::filesystem::is_regular_file(merge_video_path, error)) ImGui::Text("Video with that filename is not a file");
+                                if (merge_audio_name.empty()) ImGui::Text("Input the audio filename");
+                                else if (!std::filesystem::exists(merge_audio_path, error)) ImGui::Text("No audio with that filename");
+                                else if (!std::filesystem::is_regular_file(merge_audio_path, error)) ImGui::Text("Audio with that filename is not a file");
+                                if (merge_output_name.empty()) ImGui::Text("Input the output filename");
+                                ImGui::EndTooltip();
+                            }
+
+                            ImGui::EndDisabled();
+                            
+                            ImGui::EndDisabled();
+
+                            ImGui::EndTabItem();
+                        }
+
+                        if (ImGui::BeginTabItem("Raw FFmpeg")) {
+                            ImGui::BeginDisabled(!uv::recorder::process_done());
+                            
+                            ImGui::Text("Variables:");
+                            ImGui::Bullet();
+                            ImGui::Text("{showcases} - Path to a showcases folder");
+                            
+                            ImGui::Spacing();
+
+                            ImGui::Text("ffmpeg.exe -y");
+                            ImGui::InputTextMultiline("##Arguments Raw", &raw_arguments, { ImGui::GetContentRegionAvail().x, std::max(ImGui::GetContentRegionAvail().y - ImGui::GetTextLineHeight() * 2.0f - ImGui::GetStyle().FramePadding.y * 4.0f - ImGui::GetStyle().WindowPadding.y * 2.0f, ImGui::GetTextLineHeight()) });
+                           
+                            ImGui::Spacing();
+                            
+                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
+
+                            #define replace(s, h, n) do { \
+                                pos = (s).find((h)); \
+                                if (pos != std::string::npos) (s).replace(pos, sizeof(h)-1, (n)); \
+                            } while (pos != std::string::npos)
+                            
+                            if (ImGui::Button("Run", { ImGui::GetContentRegionAvail().x, 0 })) {
+                                std::string args = raw_arguments;
+                                size_t pos;
+                                replace(args, "{showcases}", geode::utils::string::pathToString(showcase_path));
+                                replace(args, "\n", " ");
+                                uv::recorder::raw(args);
+                            }
+
+                            ImGui::EndDisabled();
 
                             ImGui::EndTabItem();
                         }

@@ -20,6 +20,9 @@ namespace uv::recorder {
     options recording_options;
 
     void *frame_buffer = nullptr;
+
+    static subprocess::Popen process;
+    static bool process_running = false;
     
     void begin_rt(unsigned int width, unsigned int height) {
         rt.width = width;
@@ -100,9 +103,7 @@ namespace uv::recorder {
                 cmd.push_back(opt.bitrate);
             }
             
-            std::string command = fmt::format("\"{}\" ", fmt::join(cmd, "\" \""));
-            command += opt.custom_options;
-            command += " \"" + opt.output_path + "\"";
+            std::string command = fmt::format("\"{}\" {} \"{}\"", fmt::join(cmd, "\" \""), opt.custom_options, opt.output_path);
             
             auto process = subprocess::Popen(command);
             while ((recording || frame_has_data) && !process.has_exited()) {
@@ -130,18 +131,36 @@ namespace uv::recorder {
         end_rt();
     }
 
-    void merge(std::string video, std::string audio, std::string output) {
+    void merge(std::string video, std::string audio, std::string output, std::string args) {
         std::vector<std::string> cmd = {
             (geode::dirs::getGameDir() / "ffmpeg.exe").string(), "-y",
             "-i", video, "-i", audio,
-            "-map", "0:v:0", "-map", "1:a:0",
-            "-c", "copy",
-            output,
         };
         
-        std::string command = fmt::format("\"{}\"", fmt::join(cmd, "\" \""));
+        std::string command = fmt::format("\"{}\" {} \"{}\"", fmt::join(cmd, "\" \""), args, output);
         
-        auto process = subprocess::Popen(command);
-        process.close();
+        process = subprocess::Popen(command);
+        process_running = true;
+    }
+
+    void raw(std::string args) {
+        std::vector<std::string> cmd = {
+            (geode::dirs::getGameDir() / "ffmpeg.exe").string(), "-y",
+        };
+        
+        std::string command = fmt::format("\"{}\" {}", fmt::join(cmd, "\" \""), args);
+        
+        process = subprocess::Popen(command);
+        process_running = true;
+    }
+
+    bool process_done(void) {
+        if (process_running == false) return true;
+        bool exited = process.has_exited();
+        if (exited) {
+            process.close();
+            process_running = false;
+        }
+        return false;
     }
 }

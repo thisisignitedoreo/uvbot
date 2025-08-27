@@ -17,6 +17,7 @@ namespace uv::hacks {
     std::vector<float> hitboxes_color_player, hitboxes_color_fill_player;
     bool layout_mode;
     bool practice_fix;
+    bool copy_hack;
     
     void save(void) {
         geode::Mod::get()->setSavedValue<bool>("speedhack", speedhack);
@@ -38,6 +39,7 @@ namespace uv::hacks {
         geode::Mod::get()->setSavedValue<std::vector<float>>("hitboxes-color-fill-player", hitboxes_color_fill_player);
         geode::Mod::get()->setSavedValue<bool>("layout-mode", layout_mode);
         geode::Mod::get()->setSavedValue<bool>("practice-fix", practice_fix);
+        geode::Mod::get()->setSavedValue<bool>("copy-hack", copy_hack);
     }
 
     void load(void) {
@@ -60,5 +62,6 @@ namespace uv::hacks {
         hitboxes_color_fill_player = geode::Mod::get()->getSavedValue<std::vector<float>>("hitboxes-color-fill-player", { 1.0f, 1.0f, 0.0f, 0.2f });
         layout_mode = geode::Mod::get()->getSavedValue<bool>("layout-mode", false);
         practice_fix = geode::Mod::get()->getSavedValue<bool>("practice-fix", true);
+        copy_hack = geode::Mod::get()->getSavedValue<bool>("copy-hack", false);
     }
 }
