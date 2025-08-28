@@ -17,7 +17,7 @@
     },
 	  "id": "aciddev.uvbot",
 	  "name": "uvBot",
-	  "version": "v0.1.1-beta",
+	  "version": "v0.1.2-beta",
 	  "developer": "aciddev_",
 	  "description": "A TAS tool for Geometry Dash",
     "tags": [
