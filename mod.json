@@ -1,25 +1,25 @@
 {
-	  "geode": "4.8.0",
-	  "gd": {
-		    "win": "2.2074",
-		    "android": "2.2074",
-		    "mac": "2.2074",
-		    "ios": "2.2074"
-	  },
-	  "resources": {
-		    "files": [
-			      "assets/*"
-		    ]
-	  },
+    "geode": "4.8.0",
+    "gd": {
+        "win": "2.2074",
+        "android": "2.2074",
+        "mac": "2.2074",
+        "ios": "2.2074"
+    },
+    "resources": {
+        "files": [
+            "assets/*"
+        ]
+    },
     "links": {
         "community": "https://discord.gg/GmRDUKRqE8",
         "source": "https://github.com/thisisignitedoreo/uvbot"
     },
-	  "id": "aciddev.uvbot",
-	  "name": "uvBot",
-	  "version": "v0.1.2-beta",
-	  "developer": "aciddev_",
-	  "description": "A TAS tool for Geometry Dash",
+    "id": "aciddev.uvbot",
+    "name": "uvBot",
+    "version": "v0.1.2-beta",
+    "developer": "aciddev_",
+    "description": "A TAS tool for Geometry Dash",
     "tags": [
         "cheat",
         "utility",
