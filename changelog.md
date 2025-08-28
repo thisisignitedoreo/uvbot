@@ -1,4 +1,11 @@
 
+# v0.1.2-beta
+- Decouple video and audio recorders
+- Add a merge section to recorder
+- Add a raw FFmpeg section to recorder
+- Add Copy Hack
+- Fix render sometimes starting before level enter delay goes out
+
 # v0.1.1-beta
 
 - Replace a few functions to the geode builtins to be compliant with index
