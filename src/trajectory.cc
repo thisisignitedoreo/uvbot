@@ -2,6 +2,7 @@
 
 #include <Geode/modify/GJBaseGameLayer.hpp>
 #include <Geode/modify/PlayLayer.hpp>
+#include <Geode/modify/PlayerObject.hpp>
 
 #include "common.hh"
 
@@ -16,8 +17,8 @@ namespace uv::hacks::trajectory {
     static void update_player(GJBaseGameLayer *gjbgl, PlayerObject *player, cocos2d::CCDrawNode *node, bool hold) {
         float delta = 1 / 4.0f;
         
-        if (hold) player->pushButton(PlayerButton::Jump);
-        else player->releaseButton(PlayerButton::Jump);
+        if (hold && !player->m_holdingButtons[0]) player->pushButton(PlayerButton::Jump);
+        else if (!hold && player->m_holdingButtons[0]) player->releaseButton(PlayerButton::Jump);
 
         cocos2d::CCRect box;
         OBB2D *oriented_box;
@@ -49,8 +50,6 @@ namespace uv::hacks::trajectory {
 
             node->drawSegment(previous, current, uv::hacks::hitboxes_thickness, FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_player));
         }
-        
-        if (hold) player->releaseButton(PlayerButton::Jump);
 
         const cocos2d::ccColor4F blank {0.0f, 0.0f, 0.0f, 0.0f};
         const cocos2d::ccColor4F yellow {1.0f, 1.0f, 0.0f, 1.0f};
@@ -79,12 +78,6 @@ class $modify(GJBaseGameLayer) {
     void processCommands(float dt) {
         GJBaseGameLayer::processCommands(dt);
         if (uv::hacks::hitboxes_trajectory) {
-            m_fields->trajectory_players[0]->copyAttributes(this->m_player1);
-            m_fields->trajectory_players[1]->copyAttributes(this->m_player1);
-            m_fields->trajectory_players[0]->setRotation(this->m_player1->getRotation());
-            m_fields->trajectory_players[1]->setRotation(this->m_player1->getRotation());
-            m_fields->trajectory_players[0]->m_yVelocity = this->m_player1->m_yVelocity;
-            m_fields->trajectory_players[1]->m_yVelocity = this->m_player1->m_yVelocity;
         }
     }
     
@@ -92,7 +85,7 @@ class $modify(GJBaseGameLayer) {
         if (uv::hacks::trajectory::making_trajectory) return false;
         return GJBaseGameLayer::canBeActivatedByPlayer(p0, p1);
     }
-
+    
     void playerTouchedRing(PlayerObject *p0, RingObject *p1) {
         if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::playerTouchedRing(p0, p1);
     }
@@ -102,19 +95,14 @@ class $modify(GJBaseGameLayer) {
         else {
             // Thanks Zilko
             switch (p1->m_objectID) {
-            case 101: {
-                player->togglePlayerScale(true, true);
-                player->updatePlayerScale();
-            } break;
-            case 99: {
-                player->togglePlayerScale(false, true);
-                player->updatePlayerScale();
-            } break;
-            case 200: { player->m_playerSpeed = 0.7f; } break;
-            case 201: { player->m_playerSpeed = 0.9f; } break;
-            case 202: { player->m_playerSpeed = 1.1f; } break;
-            case 203: { player->m_playerSpeed = 1.3f; } break;
-            case 1334: { player->m_playerSpeed = 1.6f; } break;
+            case 101:
+            case 99:
+            case 200:
+            case 201:
+            case 202:
+            case 203:
+            case 1334:
+                GJBaseGameLayer::playerTouchedTrigger(player, p1);
             }
         }
     }
@@ -187,8 +175,26 @@ class $modify(GJBaseGameLayer) {
 
         if (uv::hacks::hitboxes_trajectory) {
             m_fields->trajectory_node->clear();
+            
+            m_fields->trajectory_players[0]->copyAttributes(this->m_player1);
+            m_fields->trajectory_players[1]->copyAttributes(this->m_player1);
+            m_fields->trajectory_players[0]->setRotation(this->m_player1->getRotation());
+            m_fields->trajectory_players[1]->setRotation(this->m_player1->getRotation());
+            m_fields->trajectory_players[0]->m_yVelocity = this->m_player1->m_yVelocity;
+            m_fields->trajectory_players[1]->m_yVelocity = this->m_player1->m_yVelocity;
         
             uv::hacks::trajectory::update(this, m_fields->trajectory_players, m_fields->trajectory_node);
+
+            if (this->m_player2) {
+                m_fields->trajectory_players[0]->copyAttributes(this->m_player2);
+                m_fields->trajectory_players[1]->copyAttributes(this->m_player2);
+                m_fields->trajectory_players[0]->setRotation(this->m_player2->getRotation());
+                m_fields->trajectory_players[1]->setRotation(this->m_player2->getRotation());
+                m_fields->trajectory_players[0]->m_yVelocity = this->m_player2->m_yVelocity;
+                m_fields->trajectory_players[1]->m_yVelocity = this->m_player2->m_yVelocity;
+                
+                uv::hacks::trajectory::update(this, m_fields->trajectory_players, m_fields->trajectory_node);
+            }
         }
     }
 };
@@ -209,5 +215,11 @@ class $modify(PlayLayer) {
         
         cocos2d::CCNode *trajectory_node = this->m_debugDrawNode->getParent()->getChildByTag(-9998);
         if (trajectory_node) trajectory_node->setVisible(uv::hacks::hitboxes && uv::hacks::hitboxes_trajectory);
+    }
+};
+
+class $modify(PlayerObject) {
+    void playSpiderDashEffect(cocos2d::CCPoint p0, cocos2d::CCPoint p1) {
+        if (!uv::hacks::trajectory::making_trajectory) PlayerObject::playSpiderDashEffect(p0, p1);
     }
 };
