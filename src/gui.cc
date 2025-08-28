@@ -17,7 +17,7 @@ namespace uv::gui {
     
     static std::string merge_video_name, merge_audio_name, merge_output_name;
     static std::string merge_video_path, merge_audio_path, merge_output_path;
-    static std::string merge_arguments = "-map 0:v:0 -map 1:a:0 -c:v copy -c:a copy";
+    static std::string merge_arguments = "-map 0:v:0 -map 1:a:0 -c:v copy -c:a copy -shortest";
     static std::string raw_arguments = "-i \"{showcases}/file.mp4\" \"{showcases}/file.mkv\"";
 
     static const std::filesystem::path macro_path = geode::Mod::get()->getSaveDir() / "Macros";
