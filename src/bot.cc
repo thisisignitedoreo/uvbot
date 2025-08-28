@@ -2,6 +2,9 @@
 
 #include <Geode/Geode.hpp>
 
+#include <Geode/modify/GJBaseGameLayer.hpp>
+#include <Geode/modify/PlayLayer.hpp>
+
 #include "common.hh"
 
 namespace uv::bot {
@@ -250,3 +253,34 @@ namespace uv::bot {
         }
     }
 }
+
+
+class $modify(GJBaseGameLayer) {
+    void handleButton(bool down, int button, bool isPlayer1) {
+        if (uv::bot::button(down, button, isPlayer1)) {
+            GJBaseGameLayer::handleButton(down, button, isPlayer1);
+        }
+    }
+
+    void processCommands(float dt) {
+        GJBaseGameLayer::processCommands(dt);
+        uv::bot::update_input(this, dt);
+    }
+
+    void update(float dt) {
+        GJBaseGameLayer::update(dt);
+        uv::bot::update_physics(this, dt);
+    }
+};
+
+class $modify(PlayLayer) {
+    void resetLevel(void) {
+        PlayLayer::resetLevel();
+        uv::bot::reset();
+    }
+    
+    void playEndAnimationToPos(cocos2d::CCPoint p1) {
+        PlayLayer::playEndAnimationToPos(p1);
+        if (uv::bot::current_state == uv::bot::state::recording) uv::bot::current_state = uv::bot::state::none;
+    }
+};

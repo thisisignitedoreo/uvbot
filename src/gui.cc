@@ -4,6 +4,10 @@
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 
+#include <Geode/Geode.hpp>
+
+#include <Geode/modify/CCEGLView.hpp>
+
 #include "common.hh"
 
 namespace uv::gui {
@@ -304,6 +308,7 @@ namespace uv::gui {
                 ImGui::SeparatorText("Hitboxes");
                 
                 ImGui::Checkbox("Show Hitboxes", &uv::hacks::hitboxes);
+                ImGui::SameLine();
                 ImGui::Checkbox("Show Trajectory", &uv::hacks::hitboxes_trajectory);
                 
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -663,3 +668,17 @@ namespace uv::gui {
         if (animating) ImGui::PopStyleVar();
     }
 }
+
+class $modify(cocos2d::CCEGLView) {
+    void onGLFWKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+        CCEGLView::onGLFWKeyCallback(window, key, scancode, action, mods);
+
+        if (action == GLFW_PRESS) {
+            if (key == GLFW_KEY_TAB) {
+                uv::gui::toggle_time = std::chrono::steady_clock::now();
+                if (!(uv::gui::show = !uv::gui::show)) uv::hacks::save();
+            }
+            if (key == GLFW_KEY_7 && mods == GLFW_MOD_CONTROL && uv::gui::show) uv::gui::debug = !uv::gui::debug;
+        }
+    }
+};
