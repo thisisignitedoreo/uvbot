@@ -304,10 +304,14 @@ namespace uv::gui {
                 ImGui::SeparatorText("Hitboxes");
                 
                 ImGui::Checkbox("Show Hitboxes", &uv::hacks::hitboxes);
+                ImGui::Checkbox("Show Trajectory", &uv::hacks::hitboxes_trajectory);
                 
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::DragFloat("##Hitboxes Thickness", &uv::hacks::hitboxes_thickness, 0.01f, 0.01f, 3.0f, "Thickness: %.2f", ImGuiSliderFlags_ClampOnInput);
+                ImGui::DragFloat("##Hitboxes Thickness", &uv::hacks::hitboxes_thickness, 0.01f, 0.01f, 3.0f, "Hitboxes Thickness: %.2f", ImGuiSliderFlags_ClampOnInput);
 
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                ImGui::DragInt("##Hitboxes Trajectory Length", &uv::hacks::hitboxes_trajectory_length, 1, 1, 1000, "Trajectory Length: %d frames");
+                
                 if (ImGui::ArrowButton("Hitboxes Colors Collapser", hitboxes_colors_opened ? ImGuiDir_Down : ImGuiDir_Right)) hitboxes_colors_opened = !hitboxes_colors_opened;
                 ImGui::SameLine();
                 ImGui::Text("Hitboxes Colors");

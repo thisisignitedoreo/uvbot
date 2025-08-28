@@ -103,7 +103,8 @@ namespace uv {
         extern bool noclip;
         extern bool noclip_p1;
         extern bool noclip_p2;
-        extern bool hitboxes;
+        extern bool hitboxes, hitboxes_trajectory;
+        extern int hitboxes_trajectory_length;
         extern float hitboxes_thickness;
         extern std::vector<float> hitboxes_color_hazards, hitboxes_color_fill_hazards;
         extern std::vector<float> hitboxes_color_solids, hitboxes_color_fill_solids;
@@ -115,6 +116,12 @@ namespace uv {
 
         void load(void);
         void save(void);
+
+        namespace trajectory {
+            extern bool making_trajectory, trajectory_end;
+            
+            void update(GJBaseGameLayer *gjbgl, PlayerObject *trajectory_players[2], cocos2d::CCDrawNode *trajectory_node);
+        }
     }
     
     namespace practice_fix {

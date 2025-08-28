@@ -79,15 +79,9 @@ class $modify(GJBaseGameLayer) {
     struct Fields {
         float initial_x = -0.0f;
         bool ready_to_render = false;
+        PlayerObject *trajectory_players[2];
+        cocos2d::CCDrawNode *trajectory_node;
     };
-
-    /*bool init(void) {
-        if (!GJBaseGameLayer::init()) return false;
-
-        m_fields->initial_x = -0.0f;
-        
-        return true;
-    }*/
     
     void handleButton(bool down, int button, bool isPlayer1) {
         if (uv::bot::button(down, button, isPlayer1)) {
@@ -98,6 +92,88 @@ class $modify(GJBaseGameLayer) {
     void processCommands(float dt) {
         GJBaseGameLayer::processCommands(dt);
         uv::bot::update_input(this, dt);
+        if (uv::hacks::hitboxes_trajectory) {
+            m_fields->trajectory_players[0]->copyAttributes(this->m_player1);
+            m_fields->trajectory_players[1]->copyAttributes(this->m_player1);
+            m_fields->trajectory_players[0]->setRotation(this->m_player1->getRotation());
+            m_fields->trajectory_players[1]->setRotation(this->m_player1->getRotation());
+            m_fields->trajectory_players[0]->m_yVelocity = this->m_player1->m_yVelocity;
+            m_fields->trajectory_players[1]->m_yVelocity = this->m_player1->m_yVelocity;
+        }
+    }
+    
+    bool canBeActivatedByPlayer(PlayerObject *p0, EffectGameObject *p1) {
+        if (uv::hacks::trajectory::making_trajectory) return false;
+        return GJBaseGameLayer::canBeActivatedByPlayer(p0, p1);
+    }
+
+    void playerTouchedRing(PlayerObject *p0, RingObject *p1) {
+        if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::playerTouchedRing(p0, p1);
+    }
+
+    void playerTouchedTrigger(PlayerObject *player, EffectGameObject *p1) {
+        if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::playerTouchedTrigger(player, p1);
+        else {
+            // Thanks Zilko
+            switch (p1->m_objectID) {
+            case 101: {
+                player->togglePlayerScale(true, true);
+                player->updatePlayerScale();
+            } break;
+            case 99: {
+                player->togglePlayerScale(false, true);
+                player->updatePlayerScale();
+            } break;
+            case 200: { player->m_playerSpeed = 0.7f; } break;
+            case 201: { player->m_playerSpeed = 0.9f; } break;
+            case 202: { player->m_playerSpeed = 1.1f; } break;
+            case 203: { player->m_playerSpeed = 1.3f; } break;
+            case 1334: { player->m_playerSpeed = 1.6f; } break;
+            }
+        }
+    }
+    
+    void collisionCheckObjects(PlayerObject *p0, gd::vector<GameObject*> *objects, int p2, float p3) {
+        if (uv::hacks::trajectory::making_trajectory) {
+            std::vector<GameObject*> to_reenable;
+
+            for (GameObject *obj : *objects) {
+                if (!obj) continue;
+
+                switch (obj->m_objectType) {
+                case GameObjectType::Collectible:
+                case GameObjectType::UserCoin:
+                case GameObjectType::SecretCoin: {
+                    if (obj->m_isDisabled || obj->m_isDisabled2) break;
+
+                    to_reenable.push_back(obj);
+                    obj->m_isDisabled = true;
+                    obj->m_isDisabled2 = true;
+                } break;
+                }
+            }
+
+            GJBaseGameLayer::collisionCheckObjects(p0, objects, p2, p3);
+
+            for (GameObject *obj : to_reenable) {
+                if (!obj) continue;
+
+                obj->m_isDisabled = false;
+                obj->m_isDisabled2 = false;
+            }
+        } else GJBaseGameLayer::collisionCheckObjects(p0, objects, p2, p3);
+    }
+
+    void activateSFXTrigger(SFXTriggerGameObject *p0) {
+        if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::activateSFXTrigger(p0);
+
+    }
+    void activateSongEditTrigger(SongTriggerGameObject *p0) {
+        if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::activateSongEditTrigger(p0);
+    }
+    
+    void gameEventTriggered(GJGameEvent p0, int p1, int p2) {
+        if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::gameEventTriggered(p0, p1, p2);
     }
     
     void update(float dt) {
@@ -136,6 +212,32 @@ class $modify(GJBaseGameLayer) {
         
         GJBaseGameLayer::update(dt);
         uv::bot::update_physics(this, dt);
+
+        if (!m_fields->trajectory_players[0] || !m_fields->trajectory_players[1] || !m_fields->trajectory_node) {
+            m_fields->trajectory_players[0] = PlayerObject::create(1, 1, this, this, true);
+            m_fields->trajectory_players[1] = PlayerObject::create(1, 1, this, this, true);
+            m_fields->trajectory_node = cocos2d::CCDrawNode::create();
+
+            m_fields->trajectory_players[0]->setVisible(false);
+            m_fields->trajectory_players[1]->setVisible(false);
+            m_fields->trajectory_node->setVisible(true);
+            
+            cocos2d::_ccBlendFunc blendFunc;
+            blendFunc.src = GL_SRC_ALPHA;
+            blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
+
+            m_fields->trajectory_node->setBlendFunc(blendFunc);
+            
+            this->m_objectLayer->addChild(m_fields->trajectory_players[0]);
+            this->m_objectLayer->addChild(m_fields->trajectory_players[1]);
+            this->m_debugDrawNode->getParent()->addChild(m_fields->trajectory_node, 1402, -9998);
+        }
+
+        if (uv::hacks::hitboxes_trajectory) {
+            m_fields->trajectory_node->clear();
+        
+            uv::hacks::trajectory::update(this, m_fields->trajectory_players, m_fields->trajectory_node);
+        }
     }
 
     #define POLYGON_FROM_RECT(r) { cocos2d::CCPoint((r).getMinX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMaxY()), cocos2d::CCPoint((r).getMinX(), (r).getMaxY()) }
@@ -289,6 +391,11 @@ class $modify(PlayLayer) {
     }
 
     void destroyPlayer(PlayerObject *po, GameObject *go) {
+        if (uv::hacks::trajectory::making_trajectory) {
+            uv::hacks::trajectory::trajectory_end = true;
+            return;
+        }
+
         bool let_him_live = uv::hacks::noclip || (uv::hacks::noclip_p1 && po == this->m_player1) || (uv::hacks::noclip_p2 && po == this->m_player2);
         if (!let_him_live) PlayLayer::destroyPlayer(po, go);
     }
@@ -299,6 +406,8 @@ class $modify(PlayLayer) {
         // 0166 -> Is "Show Hitboxes" option on?
         if (uv::hacks::hitboxes && !this->m_isPracticeMode || !GameManager::get()->getGameVariable("0166")) PlayLayer::updateDebugDraw();
         this->m_debugDrawNode->setVisible(uv::hacks::hitboxes);
+        cocos2d::CCNode *trajectory_node = this->m_debugDrawNode->getParent()->getChildByTag(-9998);
+        if (trajectory_node) trajectory_node->setVisible(uv::hacks::hitboxes && uv::hacks::hitboxes_trajectory);
     }
 
     void addObject(GameObject *obj) {
