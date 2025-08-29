@@ -1,5 +1,10 @@
 
+# v0.1.3-beta
+
+- Add trajectory tracer
+
 # v0.1.2-beta
+
 - Decouple video and audio recorders
 - Add a merge section to recorder
 - Add a raw FFmpeg section to recorder
