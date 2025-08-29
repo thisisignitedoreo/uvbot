@@ -17,8 +17,8 @@ namespace uv::hacks::trajectory {
     static void update_player(GJBaseGameLayer *gjbgl, PlayerObject *player, cocos2d::CCDrawNode *node, bool hold) {
         float delta = 1 / 4.0f;
         
-        if (hold && !player->m_holdingButtons[0]) player->pushButton(PlayerButton::Jump);
-        else if (!hold && player->m_holdingButtons[0]) player->releaseButton(PlayerButton::Jump);
+        if (hold) player->pushButton(PlayerButton::Jump);
+        else player->releaseButton(PlayerButton::Jump);
 
         cocos2d::CCRect box;
         OBB2D *oriented_box;
@@ -75,36 +75,125 @@ class $modify(GJBaseGameLayer) {
         cocos2d::CCDrawNode *trajectory_node;
     };
     
-    void processCommands(float dt) {
-        GJBaseGameLayer::processCommands(dt);
-        if (uv::hacks::hitboxes_trajectory) {
-        }
-    }
-    
     bool canBeActivatedByPlayer(PlayerObject *p0, EffectGameObject *p1) {
-        if (uv::hacks::trajectory::making_trajectory) return false;
+        if (uv::hacks::trajectory::making_trajectory) {
+            return false;
+        }
         return GJBaseGameLayer::canBeActivatedByPlayer(p0, p1);
     }
-    
+
     void playerTouchedRing(PlayerObject *p0, RingObject *p1) {
         if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::playerTouchedRing(p0, p1);
     }
 
     void playerTouchedTrigger(PlayerObject *player, EffectGameObject *p1) {
         if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::playerTouchedTrigger(player, p1);
-        else {
+        /* else {
             // Thanks Zilko
             switch (p1->m_objectID) {
-            case 101:
+            case 10:
+                player->flipGravity(false, true);
+                break;
+            case 11:
+                player->flipGravity(true, true);
+                break;
+            case 12:
+                player->m_isShip = false;
+                player->m_isBall = false;
+                player->m_isBird = false;
+                player->m_isDart = false;
+                player->m_isRobot = false;
+                player->m_isSpider = false;
+                player->m_isSwing = false;
+                break;
+            case 13:
+                player->m_isShip = true;
+                player->m_isBall = false;
+                player->m_isBird = false;
+                player->m_isDart = false;
+                player->m_isRobot = false;
+                player->m_isSpider = false;
+                player->m_isSwing = false;
+                break;
+            case 47:
+                player->m_isShip = false;
+                player->m_isBall = true;
+                player->m_isBird = false;
+                player->m_isDart = false;
+                player->m_isRobot = false;
+                player->m_isSpider = false;
+                player->m_isSwing = false;
+                break;
             case 99:
+                player->togglePlayerScale(false, true);
+                player->updatePlayerScale();
+                break;
+            case 101:
+                player->togglePlayerScale(true, true);
+                player->updatePlayerScale();
+                break;
+            case 111:
+                player->m_isShip = false;
+                player->m_isBall = false;
+                player->m_isBird = true;
+                player->m_isDart = false;
+                player->m_isRobot = false;
+                player->m_isSpider = false;
+                player->m_isSwing = false;
+                break;
             case 200:
+                player->m_playerSpeed = 0.7777f;
+                break;
             case 201:
+                player->m_playerSpeed = 0.9999f;
+                break;
             case 202:
+                player->m_playerSpeed = 1.1111f;
+                break;
             case 203:
+                player->m_playerSpeed = 1.3333f;
+                break;
+            case 660:
+                player->m_isShip = false;
+                player->m_isBall = false;
+                player->m_isBird = false;
+                player->m_isDart = true;
+                player->m_isRobot = false;
+                player->m_isSpider = false;
+                player->m_isSwing = false;
+                break;
+            case 745:
+                player->m_isShip = false;
+                player->m_isBall = false;
+                player->m_isBird = false;
+                player->m_isDart = false;
+                player->m_isRobot = true;
+                player->m_isSpider = false;
+                player->m_isSwing = false;
+                break;
+            case 1331:
+                player->m_isShip = false;
+                player->m_isBall = false;
+                player->m_isBird = false;
+                player->m_isDart = false;
+                player->m_isRobot = false;
+                player->m_isSpider = true;
+                player->m_isSwing = false;
+                break;
             case 1334:
-                GJBaseGameLayer::playerTouchedTrigger(player, p1);
+                player->m_playerSpeed = 1.6666f;
+                break;
+            case 1933:
+                player->m_isShip = false;
+                player->m_isBall = false;
+                player->m_isBird = false;
+                player->m_isDart = false;
+                player->m_isRobot = false;
+                player->m_isSpider = false;
+                player->m_isSwing = true;
+                break;
             }
-        }
+        } */
     }
     
     void collisionCheckObjects(PlayerObject *p0, gd::vector<GameObject*> *objects, int p2, float p3) {
@@ -146,10 +235,6 @@ class $modify(GJBaseGameLayer) {
         if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::activateSongEditTrigger(p0);
     }
     
-    void gameEventTriggered(GJGameEvent p0, int p1, int p2) {
-        if (!uv::hacks::trajectory::making_trajectory) GJBaseGameLayer::gameEventTriggered(p0, p1, p2);
-    }
-    
     void update(float dt) {
         GJBaseGameLayer::update(dt);
 
@@ -173,25 +258,29 @@ class $modify(GJBaseGameLayer) {
             this->m_debugDrawNode->getParent()->addChild(m_fields->trajectory_node, 1402, -9998);
         }
 
+        #define copy_player(a, b) do { \
+            (a)->copyAttributes((b)); \
+            (a)->setRotation((b)->getRotation()); \
+            (a)->m_yVelocity = (b)->m_yVelocity; \
+            (a)->m_isCollidingWithSlope = (b)->m_isCollidingWithSlope; \
+            (a)->m_isOnGround = (b)->m_isOnGround; \
+            (a)->m_isOnGround2 = (b)->m_isOnGround2; \
+            (a)->m_isOnGround3 = (b)->m_isOnGround3; \
+            (a)->m_isOnGround4 = (b)->m_isOnGround4; \
+            (a)->m_isOnSlope = (b)->m_isOnSlope; \
+        } while (0) // Oh god
+        
         if (uv::hacks::hitboxes_trajectory) {
             m_fields->trajectory_node->clear();
-            
-            m_fields->trajectory_players[0]->copyAttributes(this->m_player1);
-            m_fields->trajectory_players[1]->copyAttributes(this->m_player1);
-            m_fields->trajectory_players[0]->setRotation(this->m_player1->getRotation());
-            m_fields->trajectory_players[1]->setRotation(this->m_player1->getRotation());
-            m_fields->trajectory_players[0]->m_yVelocity = this->m_player1->m_yVelocity;
-            m_fields->trajectory_players[1]->m_yVelocity = this->m_player1->m_yVelocity;
-        
+
+            copy_player(m_fields->trajectory_players[0], this->m_player1);
+            copy_player(m_fields->trajectory_players[1], this->m_player1);
+
             uv::hacks::trajectory::update(this, m_fields->trajectory_players, m_fields->trajectory_node);
 
             if (this->m_player2) {
-                m_fields->trajectory_players[0]->copyAttributes(this->m_player2);
-                m_fields->trajectory_players[1]->copyAttributes(this->m_player2);
-                m_fields->trajectory_players[0]->setRotation(this->m_player2->getRotation());
-                m_fields->trajectory_players[1]->setRotation(this->m_player2->getRotation());
-                m_fields->trajectory_players[0]->m_yVelocity = this->m_player2->m_yVelocity;
-                m_fields->trajectory_players[1]->m_yVelocity = this->m_player2->m_yVelocity;
+                copy_player(m_fields->trajectory_players[0], this->m_player2);
+                copy_player(m_fields->trajectory_players[1], this->m_player2);
                 
                 uv::hacks::trajectory::update(this, m_fields->trajectory_players, m_fields->trajectory_node);
             }
