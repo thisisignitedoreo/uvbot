@@ -10,85 +10,16 @@
 
 #include "common.hh"
 
-namespace uv::hacks {
-    bool speedhack;
-    bool speedhack_classic;
-    float speedhack_multiplier;
-    bool lock_delta;
-    bool noclip;
-    bool noclip_p1;
-    bool noclip_p2;
-    bool hitboxes, hitboxes_trajectory;
-    int hitboxes_trajectory_length;
-    float hitboxes_thickness;
-    std::vector<float> hitboxes_color_hazards, hitboxes_color_fill_hazards;
-    std::vector<float> hitboxes_color_solids, hitboxes_color_fill_solids;
-    std::vector<float> hitboxes_color_specials, hitboxes_color_fill_specials;
-    std::vector<float> hitboxes_color_player, hitboxes_color_fill_player;
-    bool layout_mode;
-    bool practice_fix;
-    bool copy_hack;
-    
-    void save(void) {
-        geode::Mod::get()->setSavedValue<bool>("speedhack", speedhack);
-        geode::Mod::get()->setSavedValue<bool>("speedhack-classic", speedhack_classic);
-        geode::Mod::get()->setSavedValue<float>("speedhack-multiplier", speedhack_multiplier);
-        geode::Mod::get()->setSavedValue<bool>("lock-delta", lock_delta);
-        geode::Mod::get()->setSavedValue<bool>("noclip", noclip);
-        geode::Mod::get()->setSavedValue<bool>("noclip-p1", noclip_p1);
-        geode::Mod::get()->setSavedValue<bool>("noclip-p2", noclip_p2);
-        geode::Mod::get()->setSavedValue<bool>("hitboxes", hitboxes);
-        geode::Mod::get()->setSavedValue<bool>("hitboxes-trajectory", hitboxes_trajectory);
-        geode::Mod::get()->setSavedValue<int>("hitboxes-trajectory-length", hitboxes_trajectory_length);
-        geode::Mod::get()->setSavedValue<float>("hitboxes-thickness", hitboxes_thickness);
-        geode::Mod::get()->setSavedValue<std::vector<float>>("hitboxes-color-hazards", hitboxes_color_hazards);
-        geode::Mod::get()->setSavedValue<std::vector<float>>("hitboxes-color-fill-hazards", hitboxes_color_fill_hazards);
-        geode::Mod::get()->setSavedValue<std::vector<float>>("hitboxes-color-solids", hitboxes_color_solids);
-        geode::Mod::get()->setSavedValue<std::vector<float>>("hitboxes-color-fill-solids", hitboxes_color_fill_solids);
-        geode::Mod::get()->setSavedValue<std::vector<float>>("hitboxes-color-specials", hitboxes_color_specials);
-        geode::Mod::get()->setSavedValue<std::vector<float>>("hitboxes-color-fill-specials", hitboxes_color_fill_specials);
-        geode::Mod::get()->setSavedValue<std::vector<float>>("hitboxes-color-player", hitboxes_color_player);
-        geode::Mod::get()->setSavedValue<std::vector<float>>("hitboxes-color-fill-player", hitboxes_color_fill_player);
-        geode::Mod::get()->setSavedValue<bool>("layout-mode", layout_mode);
-        geode::Mod::get()->setSavedValue<bool>("practice-fix", practice_fix);
-        geode::Mod::get()->setSavedValue<bool>("copy-hack", copy_hack);
-    }
-
-    void load(void) {
-        speedhack = geode::Mod::get()->getSavedValue<bool>("speedhack", false);
-        speedhack_classic = geode::Mod::get()->getSavedValue<bool>("speedhack-classic", false);
-        speedhack_multiplier = geode::Mod::get()->getSavedValue<float>("speedhack-multiplier", 1.0f);
-        lock_delta = geode::Mod::get()->getSavedValue<bool>("lock-delta", false);
-        noclip = geode::Mod::get()->getSavedValue<bool>("noclip", false);
-        noclip_p1 = geode::Mod::get()->getSavedValue<bool>("noclip-p1", false);
-        noclip_p2 = geode::Mod::get()->getSavedValue<bool>("noclip-p2", false);
-        hitboxes = geode::Mod::get()->getSavedValue<bool>("hitboxes", false);
-        hitboxes_trajectory = geode::Mod::get()->getSavedValue<bool>("hitboxes-trajectory", false);
-        hitboxes_trajectory_length = geode::Mod::get()->getSavedValue<int>("hitboxes-trajectory-length", 100);
-        hitboxes_thickness = geode::Mod::get()->getSavedValue<float>("hitboxes-thickness", 0.3f);
-        hitboxes_color_hazards = geode::Mod::get()->getSavedValue<std::vector<float>>("hitboxes-color-hazards", { 1.0f, 0.0f, 0.0f, 1.0f });
-        hitboxes_color_fill_hazards = geode::Mod::get()->getSavedValue<std::vector<float>>("hitboxes-color-fill-hazards", { 1.0f, 0.0f, 0.0f, 0.2f });
-        hitboxes_color_solids = geode::Mod::get()->getSavedValue<std::vector<float>>("hitboxes-color-solids", { 0.0f, 0.0f, 1.0f, 1.0f });
-        hitboxes_color_fill_solids = geode::Mod::get()->getSavedValue<std::vector<float>>("hitboxes-color-fill-solids", { 0.0f, 0.0f, 1.0f, 0.2f });
-        hitboxes_color_specials = geode::Mod::get()->getSavedValue<std::vector<float>>("hitboxes-color-specials", { 0.0f, 1.0f, 0.0f, 1.0f });
-        hitboxes_color_fill_specials = geode::Mod::get()->getSavedValue<std::vector<float>>("hitboxes-color-fill-specials", { 0.0f, 1.0f, 0.0f, 0.2f });
-        hitboxes_color_player = geode::Mod::get()->getSavedValue<std::vector<float>>("hitboxes-color-player", { 1.0f, 1.0f, 0.0f, 1.0f });
-        hitboxes_color_fill_player = geode::Mod::get()->getSavedValue<std::vector<float>>("hitboxes-color-fill-player", { 1.0f, 1.0f, 0.0f, 0.2f });
-        layout_mode = geode::Mod::get()->getSavedValue<bool>("layout-mode", false);
-        practice_fix = geode::Mod::get()->getSavedValue<bool>("practice-fix", true);
-        copy_hack = geode::Mod::get()->getSavedValue<bool>("copy-hack", false);
-    }
-}
-
 static bool debug_update = false;
 static std::chrono::steady_clock::time_point last_time, now;
 static std::chrono::steady_clock::duration accumulator;
+static float left_over = 0.0f;
 
 #define POLYGON_FROM_RECT(r) { cocos2d::CCPoint((r).getMinX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMaxY()), cocos2d::CCPoint((r).getMinX(), (r).getMaxY()) }
 
 class $modify(GJBaseGameLayer) {
     void addObject(GameObject *obj) {
-        if (uv::hacks::layout_mode) {
+        if (uv::hacks::get("layout-mode", false)) {
             obj->m_detailUsesHSV = false;
             obj->m_baseUsesHSV = false;
             obj->setOpacity(255);
@@ -163,22 +94,25 @@ class $modify(GJBaseGameLayer) {
         }
     }
 
-    // Thanks toby
-    void updateColor(cocos2d::ccColor3B &color, float fadeTime, int colorID, bool blending, float opacity, cocos2d::ccHSVValue &copyHSV, int colorIDToCopy, bool copyOpacity, EffectGameObject *callerObject, int unk1, int unk2) {
-        PlayLayer *pl = PlayLayer::get();
-        if (!pl) return GJBaseGameLayer::updateColor(color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
-
-        cocos2d::ccColor3B copy_color = color;
-        if (uv::hacks::layout_mode) {
-            if (colorID == 1000) copy_color = {0, 0, 0};
-            else if (colorID == 1001) copy_color = {0, 0, 0};
-            else if (colorID == 1002) copy_color = {255, 255, 255};
-            else if (colorID == 1009) copy_color = {0, 0, 0};
-            else if (colorID == 1013 || colorID == 1014) copy_color = {0, 0, 0};
-            else copy_color = {255, 255, 255};
+    // Thanks zilko
+    float getModifiedDelta(float delta) {
+        if (uv::hacks::get("tps", 240.0f) <= 240.0f) return GJBaseGameLayer::getModifiedDelta(delta);
+        
+        if (this->m_resumeTimer > 0) {
+            this->m_resumeTimer--;
+            delta = 0.0f;
         }
 
-        GJBaseGameLayer::updateColor(copy_color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
+        // I have no idea
+        float timewarp = std::min(this->m_gameState.m_timeWarp, 1.0f);
+        float new_delta = 1.0f / uv::hacks::get("tps", 240.0f);
+        double var1 = delta + this->m_extraDelta;
+        float var2 = std::round(var1 / (timewarp * new_delta));
+        double var3 = var2 * timewarp * new_delta;
+        
+        m_extraDelta = var1 - var3;
+
+        return var3;
     }
 };
 
@@ -187,15 +121,54 @@ class $modify(PlayLayer) {
         PlayLayer::updateProgressbar();
 
         // 0166 -> Is "Show Hitboxes" option on?
-        if (uv::hacks::hitboxes && !this->m_isPracticeMode || !GameManager::get()->getGameVariable("0166")) PlayLayer::updateDebugDraw();
-        this->m_debugDrawNode->setVisible(uv::hacks::hitboxes);
+        if (uv::hacks::get("hitboxes", false) && !this->m_isPracticeMode || !GameManager::get()->getGameVariable("0166")) PlayLayer::updateDebugDraw();
+        this->m_debugDrawNode->setVisible(uv::hacks::get("hitboxes", false));
     }
+
+    // Thanks toby
+    void updateColor(cocos2d::ccColor3B &color, float fadeTime, int colorID, bool blending, float opacity, cocos2d::ccHSVValue &copyHSV, int colorIDToCopy, bool copyOpacity, EffectGameObject *callerObject, int unk1, int unk2) {
+        cocos2d::ccColor3B copy_color = color;
+        if (uv::hacks::get("layout-mode", false)) {
+            if (colorID == 1000) copy_color = {0, 0, 0};
+            else if (colorID == 1001) copy_color = {0, 0, 0};
+            else if (colorID == 1002) copy_color = {255, 255, 255};
+            else if (colorID == 1009) copy_color = {0, 0, 0};
+            else if (colorID == 1013 || colorID == 1014) copy_color = {0, 0, 0};
+            else copy_color = {255, 255, 255};
+        }
+
+        PlayLayer::updateColor(copy_color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
+    }
+    
+    void update(float delta) {
+        if (uv::hacks::get("tps", 240.0f) <= 240.0f) { PlayLayer::update(delta); return; }
+
+        float target_delta = 1.0f / uv::hacks::get("tps", 240.0f);
+        float real_delta = delta + left_over;
+        if (real_delta > delta && target_delta < delta) real_delta = delta;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        int multiplier = static_cast<int>(real_delta / target_delta);
+
+        for (int i = 0; i < multiplier; i++) {
+            PlayLayer::update(target_delta);
+            if (std::chrono::high_resolution_clock::now() - start > std::chrono::duration<double, std::milli>(16.666f)) {
+                multiplier = i + 1;
+                break;
+            }
+        }
+        
+        left_over += (delta - target_delta * multiplier);
+    }
+
+    // NOTE: to achive TPS lower than 240.0f you need to midhook update
+    // Geode can not do that right now :(
 };
 
 class $modify(GameObject) {
     void addGlow(gd::string p0) {
         GameObject::addGlow(p0);
-        if (uv::hacks::layout_mode && this->m_objectType == GameObjectType::Decoration) this->m_isHide = true;
+        if (uv::hacks::get("layout-mode", false) && this->m_objectType == GameObjectType::Decoration) this->m_isHide = true;
     }
 
     // Thanks cvolton, unthanks robtop
@@ -207,21 +180,16 @@ class $modify(GameObject) {
 
 class $modify(cocos2d::CCScheduler) {
     void update(float dt) {
-        if (uv::hacks::speedhack && !uv::hacks::speedhack_classic) dt *= uv::hacks::speedhack_multiplier;
+        if (uv::hacks::get("speedhack", false) && !uv::hacks::get("speedhack-classic", false)) dt *= uv::hacks::get("speedhack-multiplier", 1.0f);
         CCScheduler::update(dt);
     }
 };
 
 class $modify(LevelInfoLayer) {
-    LevelInfoLayer *create(GJGameLevel *level, bool challenge) {
-        if (uv::hacks::copy_hack) m_level->m_password = 1;
-
-        return LevelInfoLayer::create(level, challenge);
-    }
-
-    void tryCloneLevel(cocos2d::CCObject *sender) {
-        if (uv::hacks::copy_hack) m_level->m_password = 1;
-        LevelInfoLayer::tryCloneLevel(sender);
+    bool init(GJGameLevel *level, bool challenge) {
+        if (uv::hacks::get("copy-hack", false)) level->m_password = 1;
+        
+        return LevelInfoLayer::init(level, challenge);
     }
 };
 
@@ -233,12 +201,12 @@ class $modify(cocos2d::CCDirector) {
     }
     
     void drawScene(void) {
-        if (uv::hacks::speedhack && uv::hacks::speedhack_classic) {
+        if (uv::hacks::get("speedhack", false) && uv::hacks::get("speedhack-classic", false)) {
             now = std::chrono::steady_clock::now();
             accumulator += now - last_time;
             last_time = now;
 
-            double frame_length = this->getAnimationInterval() * (1.0 / uv::hacks::speedhack_multiplier);
+            double frame_length = this->getAnimationInterval() * (1.0 / uv::hacks::get("speedhack-multiplier", 1.0f));
             
             if (std::chrono::duration<double>(accumulator).count() < frame_length) return;
             accumulator -= std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(accumulator));
@@ -253,21 +221,21 @@ class $modify(cocos2d::CCDirector) {
 
 class $modify(cocos2d::CCDrawNode) {
     bool drawPolygon(cocos2d::CCPoint *vertex, unsigned int count, const cocos2d::ccColor4F &fillColor, float thickness, const cocos2d::ccColor4F &borderColor) {
-        thickness = uv::hacks::hitboxes_thickness;
+        thickness = uv::hacks::get("hitboxes-thickness", 0.3f);
 
         cocos2d::ccColor4F copy_color, copy_fill_color;
         if (COLOR4F_EQUALS(borderColor, 1.0f, 0.0f, 0.0f)) {
-            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_hazards);
-            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_fill_hazards);
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-hazards", { 1.0f, 0.0f, 0.0f, 1.0f }));
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-fill-hazards", { 1.0f, 0.0f, 0.0f, 0.2f }));
         } else if (COLOR4F_EQUALS(borderColor, 0.0f, 0.25f, 1.0f)) {
-            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_solids);
-            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_fill_solids);
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-solids", { 0.0f, 0.0f, 1.0f, 1.0f }));
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-fill-solids", { 0.0f, 0.0f, 1.0f, 0.2f }));
         } else if (COLOR4F_EQUALS(borderColor, 0.0f, 1.0f, 0.0f)) {
-            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_specials);
-            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_fill_specials);
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-specials", { 0.0f, 1.0f, 0.0f, 1.0f }));
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-fill-specials", { 0.0f, 1.0f, 0.0f, 0.2f }));
         } else if (COLOR4F_EQUALS(borderColor, 1.0f, 1.0f, 0.0f)) {
-            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_player);
-            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_fill_player);
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-player", { 1.0f, 1.0f, 0.0f, 1.0f }));
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-fill-player", { 1.0f, 1.0f, 0.0f, 0.2f }));
         } else {
             copy_color = borderColor;
             copy_fill_color = fillColor;
@@ -277,9 +245,27 @@ class $modify(cocos2d::CCDrawNode) {
     }
     
     bool drawCircle(const cocos2d::CCPoint &position, float radius, const cocos2d::ccColor4F &color, float thickness, const cocos2d::ccColor4F &borderColor, unsigned int segments) {
-        thickness = uv::hacks::hitboxes_thickness;
+        thickness = uv::hacks::get("hitboxes-thickness", 0.3f);
         this->m_bUseArea = false;
 
-        return cocos2d::CCDrawNode::drawCircle(position, radius, color, thickness, borderColor, segments);
+        cocos2d::ccColor4F copy_color, copy_fill_color;
+        if (COLOR4F_EQUALS(borderColor, 1.0f, 0.0f, 0.0f)) {
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-hazards", { 1.0f, 0.0f, 0.0f, 1.0f }));
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-fill-hazards", { 1.0f, 0.0f, 0.0f, 0.2f }));
+        } else if (COLOR4F_EQUALS(borderColor, 0.0f, 0.25f, 1.0f)) {
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-solids", { 0.0f, 0.0f, 1.0f, 1.0f }));
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-fill-solids", { 0.0f, 0.0f, 1.0f, 0.2f }));
+        } else if (COLOR4F_EQUALS(borderColor, 0.0f, 1.0f, 0.0f)) {
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-specials", { 0.0f, 1.0f, 0.0f, 1.0f }));
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-fill-specials", { 0.0f, 1.0f, 0.0f, 0.2f }));
+        } else if (COLOR4F_EQUALS(borderColor, 1.0f, 1.0f, 0.0f)) {
+            copy_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-player", { 1.0f, 1.0f, 0.0f, 1.0f }));
+            copy_fill_color = FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-fill-player", { 1.0f, 1.0f, 0.0f, 0.2f }));
+        } else {
+            copy_color = borderColor;
+            copy_fill_color = color;
+        }
+
+        return cocos2d::CCDrawNode::drawCircle(position, radius, copy_fill_color, thickness, copy_color, segments);
     }
 };

@@ -15,15 +15,14 @@ namespace uv::bot {
     int current_input_action = 0;
     int current_physic_player_1_action = 0;
     int current_physic_player_2_action = 0;
+    float record_tps = 0.0f;
 
     state current_state = state::none;
 
     bool permit_press = false;
     bool holding = false;
 
-    static const auto macro_path = geode::Mod::get()->getSaveDir() / "Macros";
-
-    const unsigned char macro_version = 1;
+    const unsigned char macro_version = 2;
     
     frame_t get_frame(void) {
         PlayLayer *pl = PlayLayer::get();
@@ -69,18 +68,16 @@ namespace uv::bot {
         frame_t frame = get_frame();
 
         if (current_state == state::playing) {
-            if (current_input_action < input_actions.size()) {
-                input_action this_action = input_actions[current_input_action];
-                if (this_action.frame == frame) {
-                    int button = (this_action.flags >> 1) % 3 + 1;
-                    permit_press = true;
-                    self->handleButton(this_action.flags & 1, button, (this_action.flags >> 1) > 2);
-                    permit_press = false;
-                } else if (this_action.frame < frame) {
-                    while (current_input_action < input_actions.size() && input_actions[current_input_action].frame < frame) {
-                        current_input_action++;
-                    }
-                }
+            input_action this_action;
+            while (current_input_action < input_actions.size() && input_actions[current_input_action].frame == frame) {
+                this_action = input_actions[current_input_action];
+                
+                int button = (this_action.flags >> 1) % 3 + 1;
+                permit_press = true;
+                self->handleButton(this_action.flags & 1, button, (this_action.flags >> 1) > 2);
+                permit_press = false;
+                
+                current_input_action++;
             }
         }
     }
@@ -154,7 +151,7 @@ namespace uv::bot {
     }
     
     void save(std::string name) {
-        std::ofstream file(macro_path / (name + ".uv"), std::ios::binary);
+        std::ofstream file(uv::macro_path / (name + ".uv"), std::ios::binary);
 
         file.write(reinterpret_cast<const char*>("UVBOT"), 5);
         file.write(reinterpret_cast<const char*>(&macro_version), 1);
@@ -162,6 +159,8 @@ namespace uv::bot {
         int input_action_amount = input_actions.size();
         int physic_player_1_action_amount = physic_player_1_actions.size();
         int physic_player_2_action_amount = physic_player_2_actions.size();
+
+        file.write(reinterpret_cast<char*>(&record_tps), sizeof(float));
 
         file.write(reinterpret_cast<char*>(&input_action_amount), sizeof(int));
         file.write(reinterpret_cast<char*>(&physic_player_1_action_amount), sizeof(int));
@@ -194,7 +193,7 @@ namespace uv::bot {
     void load(std::string name) {
         clear();
         
-        std::ifstream file(macro_path / (name + ".uv"), std::ios::binary);
+        std::ifstream file(uv::macro_path / (name + ".uv"), std::ios::binary);
 
         char magic[5];
         file.read(reinterpret_cast<char*>(magic), 5);
@@ -205,7 +204,7 @@ namespace uv::bot {
 
         unsigned char version;
         file.read(reinterpret_cast<char*>(&version), 1);
-        if (version != macro_version) {
+        if (version != macro_version && version != 1) {
             geode::log::warn("Error loading macro file: Version mismatch");
             return;
         }
@@ -214,6 +213,11 @@ namespace uv::bot {
         int physic_player_1_action_amount = 0;
         int physic_player_2_action_amount = 0;
 
+        float tps;
+        if (version == 1) tps = 240.0f;
+        else file.read(reinterpret_cast<char*>(&tps), sizeof(float));
+        uv::hacks::set("tps", tps);
+        
         file.read(reinterpret_cast<char*>(&input_action_amount), sizeof(int));
         file.read(reinterpret_cast<char*>(&physic_player_1_action_amount), sizeof(int));
         file.read(reinterpret_cast<char*>(&physic_player_2_action_amount), sizeof(int));

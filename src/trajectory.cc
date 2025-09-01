@@ -23,7 +23,7 @@ namespace uv::hacks::trajectory {
         cocos2d::CCRect box;
         OBB2D *oriented_box;
 
-        for (int i = 0; i < uv::hacks::hitboxes_trajectory_length; i++) {
+        for (int i = 0; i < uv::hacks::get("hitboxes-trajectory-length", 100); i++) {
             cocos2d::CCPoint previous = player->getPosition();
 
             player->m_collisionLogTop->removeAllObjects();
@@ -48,7 +48,7 @@ namespace uv::hacks::trajectory {
 
             cocos2d::CCPoint current = player->getPosition();
 
-            node->drawSegment(previous, current, uv::hacks::hitboxes_thickness, FLOAT4_TO_COLOR4F(uv::hacks::hitboxes_color_player));
+            node->drawSegment(previous, current, uv::hacks::get("hitboxes-thickness", 0.3f), FLOAT4_TO_COLOR4F(uv::hacks::get<std::vector<float>>("hitboxes-color-player", { 1.0f, 1.0f, 0.0f, 1.0f })));
         }
 
         const cocos2d::ccColor4F blank {0.0f, 0.0f, 0.0f, 0.0f};
@@ -268,9 +268,9 @@ class $modify(GJBaseGameLayer) {
             (a)->m_isOnGround3 = (b)->m_isOnGround3; \
             (a)->m_isOnGround4 = (b)->m_isOnGround4; \
             (a)->m_isOnSlope = (b)->m_isOnSlope; \
-        } while (0) // Oh god
+        } while (0)
         
-        if (uv::hacks::hitboxes_trajectory) {
+        if (uv::hacks::get("hitboxes-trajectory", false)) {
             m_fields->trajectory_node->clear();
 
             copy_player(m_fields->trajectory_players[0], this->m_player1);
@@ -295,7 +295,7 @@ class $modify(PlayLayer) {
             return;
         }
 
-        bool let_him_live = uv::hacks::noclip || (uv::hacks::noclip_p1 && po == this->m_player1) || (uv::hacks::noclip_p2 && po == this->m_player2);
+        bool let_him_live = uv::hacks::get("noclip", false) || (uv::hacks::get("noclip-p1", false) && po == this->m_player1) || (uv::hacks::get("noclip-p2", false) && po == this->m_player2);
         if (!let_him_live) PlayLayer::destroyPlayer(po, go);
     }
 
@@ -303,7 +303,7 @@ class $modify(PlayLayer) {
         PlayLayer::updateProgressbar();
         
         cocos2d::CCNode *trajectory_node = this->m_debugDrawNode->getParent()->getChildByTag(-9998);
-        if (trajectory_node) trajectory_node->setVisible(uv::hacks::hitboxes && uv::hacks::hitboxes_trajectory);
+        if (trajectory_node) trajectory_node->setVisible(uv::hacks::get("hitboxes", false) && uv::hacks::get("hitboxes-trajectory", false));
     }
 };
 

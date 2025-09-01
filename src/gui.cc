@@ -15,6 +15,8 @@ namespace uv::gui {
     bool debug = false;
     std::chrono::steady_clock::time_point toggle_time;
     
+    static int _last_key = 0;
+    
     static bool show_demo = false, show_style_editor = false, pushed_colors = false, hitboxes_colors_opened = false;
     
     static std::string macro_name, video_name, audio_name;
@@ -23,9 +25,6 @@ namespace uv::gui {
     static std::string merge_video_path, merge_audio_path, merge_output_path;
     static std::string merge_arguments = "-map 0:v:0 -map 1:a:0 -c:v copy -c:a copy -shortest";
     static std::string raw_arguments = "-i \"{showcases}/file.mp4\" \"{showcases}/file.mkv\"";
-
-    static const std::filesystem::path macro_path = geode::Mod::get()->getSaveDir() / "Macros";
-    static const std::filesystem::path showcase_path = geode::Mod::get()->getSaveDir() / "Showcases";
     
     static const std::chrono::steady_clock::duration animation_duration = std::chrono::milliseconds(150);
 
@@ -39,14 +38,14 @@ namespace uv::gui {
         .excess_render = 3.0f,
         .codec = "libx264",
         .bitrate = "50M",
-        .output_path = geode::utils::string::pathToString(showcase_path / ".mp4"),
+        .output_path = geode::utils::string::pathToString(uv::showcase_path / ".mp4"),
         .custom_options = "-pix_fmt yuv420p -vf \"vflip\"",
         .hide_end_level_screen = true,
         .fade_out = false,
     };
     
     uv::recorder::audio::options audio_opts = {
-        .output_path = geode::utils::string::pathToString(showcase_path / ".wav"),
+        .output_path = geode::utils::string::pathToString(uv::showcase_path / ".wav"),
         .music_volume = 1.0f,
         .sfx_volume = 1.0f,
         .excess_render = 3.0f,
@@ -156,43 +155,7 @@ namespace uv::gui {
         style.Colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
     }
 
-    static void draw_persistent(void) {
-        // TODO: write this part
-    }
-    
-    void draw(void) {
-        draw_persistent();
-        
-        bool animating = std::chrono::steady_clock::now() - toggle_time < animation_duration;
-        if (!show && !animating) return;
-
-        if (animating) {
-            float alpha_value = (std::chrono::steady_clock::now() - toggle_time).count() / static_cast<float>(animation_duration.count());
-            if (!show) alpha_value = 1.0f - alpha_value;
-            // Apply Cubic InOut easing
-            float intermediate = (-2 * alpha_value) + 2;
-            alpha_value = alpha_value < 0.5f ? 4 * alpha_value * alpha_value * alpha_value : 1 - (intermediate * intermediate * intermediate) / 2;
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha_value);
-        }
-
-        if (uv::bot::current_state == uv::bot::state::recording) {
-            ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.23f, 0.13f, 0.13f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.27f, 0.17f, 0.17f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.23f, 0.13f, 0.13f, 1.0f));
-            pushed_colors = true;
-        } else if (uv::bot::current_state == uv::bot::state::playing) {
-            ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.13f, 0.23f, 0.13f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.17f, 0.27f, 0.17f, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.13f, 0.23f, 0.13f, 1.0f));
-            pushed_colors = true;
-        }
-
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400.0f, 200.0f));
-
-        if (uv::bot::current_state == uv::bot::state::recording) ImGui::Begin("uvBot - Recording###uvBot");
-        else if (uv::bot::current_state == uv::bot::state::playing) ImGui::Begin("uvBot - Playing###uvBot");
-        else ImGui::Begin("uvBot###uvBot");
-
+    static void draw_main_ui(void) {
         if (ImGui::BeginTabBar("uvBot TabBar")) {
             if (ImGui::BeginTabItem("Bot")) {
                 // I hate C++
@@ -213,6 +176,8 @@ namespace uv::gui {
                     uv::bot::current_physic_player_1_action = 0;
                     uv::bot::current_physic_player_2_action = 0;
                 }
+
+                if (changed_recording) uv::bot::record_tps = uv::hacks::get("tps", 240.0f);
                 
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::InputTextWithHint("##Macro Name", "Macro Name", &macro_name);
@@ -240,22 +205,39 @@ namespace uv::gui {
                 
                 ImGui::Spacing();
                 
-                if (ImGui::Button("Open Macros folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(macro_path);
+                if (ImGui::Button("Open Macros folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(uv::macro_path);
 
                 ImGui::SeparatorText("Macros");
 
                 bool not_empty = false;
                 std::error_code error;
-                for (auto const &dir_entry : std::filesystem::directory_iterator(macro_path, error)) {
+                for (auto const &dir_entry : std::filesystem::directory_iterator(uv::macro_path, error)) {
                     not_empty = true; // I am too lazy to do this the right way
-                    if (dir_entry.is_regular_file() && geode::utils::string::pathToString(dir_entry.path()).ends_with(".uv")) {
-                        std::string path = geode::utils::string::pathToString(dir_entry.path());
-                        int from = path.rfind(dir_entry.path().preferred_separator);
-                        if (from == std::string::npos) from = 0;
-                        std::string name = path.substr(from + 1, path.size() - from - 4);
-                        if (ImGui::Button(name.c_str(), { ImGui::GetContentRegionAvail().x, 0 })) {
-                            uv::bot::load(name);
-                            macro_name = name;
+                    std::string dir_str = geode::utils::string::pathToString(dir_entry.path());
+                    if (dir_entry.is_regular_file()) {
+                        if (dir_str.ends_with(".uv")) {
+                            std::string path = geode::utils::string::pathToString(dir_entry.path());
+                            int from = path.rfind(dir_entry.path().preferred_separator);
+                            if (from == std::string::npos) from = 0;
+                            std::string name = path.substr(from + 1, path.size() - from - 4);
+                            if (ImGui::Button(name.c_str(), { ImGui::GetContentRegionAvail().x, 0 })) {
+                                uv::bot::load(name);
+                                macro_name = name;
+                            }
+                        } else {
+                            for (auto &i : uv::bot::foreign::supported_exts) {
+                                if (dir_str.ends_with(i)) {
+                                    std::string path = geode::utils::string::pathToString(dir_entry.path());
+                                    int from = path.rfind(dir_entry.path().preferred_separator);
+                                    if (from == std::string::npos) from = 0;
+                                    std::string name = path.substr(from + 1, path.size() - from - 1);
+                                    if (ImGui::Button(name.c_str(), { ImGui::GetContentRegionAvail().x, 0 })) {
+                                        uv::bot::foreign::load(name);
+                                        macro_name = name.substr(0, name.rfind("."));
+                                        if (!uv::hacks::set<bool>("shown-foriegn-macro-warn", true)) ImGui::OpenPopup("Hey!##Foreign Macro Popup");
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -264,80 +246,142 @@ namespace uv::gui {
 
                 if (error) geode::log::debug("Error reading macro directory: {}", error.message());
 
+                if (ImGui::BeginPopupModal("Hey!##Foreign Macro Popup")) {
+                    ImGui::Text("You are loading a foreign macro, meaning the macro is made by and for another bot.\n"
+                    "This macro is not guaranteed to play as well as the original, and/or be accurate.\n"
+                    "Think of this feature as a built in macro converter.");
+                    ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                    if (ImGui::Button("Okay, got it!", { ImGui::GetContentRegionAvail().x, 0 })) ImGui::CloseCurrentPopup();
+                    ImGui::EndPopup();
+                }
+                
                 ImGui::EndTabItem();
             }
 
+            #define checkbox_id(n, i, d) do { \
+                bool aa = uv::hacks::get((i), d); \
+                ImGui::Checkbox((n), &aa); \
+                uv::hacks::set((i), aa); \
+            } while (0)
+            
             if (ImGui::BeginTabItem("Hacks")) {
                 ImGui::SeparatorText("Botting");
+
+                ImGui::BeginDisabled(uv::bot::current_state != uv::bot::none);
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 
-                ImGui::Checkbox("##Speedhack Checkbox", &uv::hacks::speedhack);
+                float tps = uv::hacks::get("tps", 240.0f);
+                ImGui::DragFloat("##TPS", &tps, 0.1f, 240.0f, 10000.0f, "TPS: %.2f", ImGuiSliderFlags_AlwaysClamp);
+                uv::hacks::set<float>("tps", 240.0f);
+                
+                ImGui::EndDisabled();
+
+                checkbox_id("##Speedhack Checkbox", "speedhack", false);
+                
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::DragFloat("##Speedhack", &uv::hacks::speedhack_multiplier, 0.01f, 0.0f, 3.0f, "Speedhack: %.2fx");
-                if (uv::hacks::speedhack_multiplier <= 0.0f) uv::hacks::speedhack_multiplier = 1.0f;
                 
-                ImGui::Checkbox("Classic Mode Speedhack", &uv::hacks::speedhack_classic);
+                float speedhack_multiplier = uv::hacks::get("speedhack-multiplier", 1.0f);
+                ImGui::DragFloat("##Speedhack", &speedhack_multiplier, 0.01f, 0.0f, 3.0f, "Speedhack: %.2fx");
+                if (speedhack_multiplier <= 0.0f) speedhack_multiplier = 1.0f;
+                uv::hacks::set("speedhack-multiplier", speedhack_multiplier);
+
+                checkbox_id("Classic Mode Speedhack", "speedhack-classic", false);
+                
                 ImGui::SameLine();
                 ImGui::TextDisabled("?");
                 ImGui::SetItemTooltip("Instead of making the game smoothly slower, classic mode slows down the framerate.\nUseful for recording the game with OBS or something.");
 
-                ImGui::Checkbox("Lock DeltaTime", &uv::hacks::lock_delta);
+                checkbox_id("Lock DeltaTime", "lock-delta", false);
+                
                 ImGui::SameLine();
                 ImGui::TextDisabled("?");
                 ImGui::SetItemTooltip("Disables frame skip when the game can't keep up with the target FPS.\nUseful for showcasing.");
                 
-                ImGui::Checkbox("Practice Fix", &uv::hacks::practice_fix);
+                checkbox_id("Practice Fix", "practice-fix", true);
 
                 ImGui::SeparatorText("Player");
+                
+                bool noclip = uv::hacks::get("noclip", false);
+                bool noclip_p1 = uv::hacks::get("noclip-p1", false);
+                bool noclip_p2 = uv::hacks::get("noclip-p2", false);
 
-                if (ImGui::Checkbox("Noclip", &uv::hacks::noclip) && uv::hacks::noclip) {
-                    uv::hacks::noclip_p1 = false;
-                    uv::hacks::noclip_p2 = false;
+                if (ImGui::Checkbox("Noclip", &noclip) && noclip) {
+                    noclip_p1 = false;
+                    noclip_p2 = false;
                 }
                 ImGui::SameLine();
-                if (ImGui::Checkbox("Player 1", &uv::hacks::noclip_p1) && uv::hacks::noclip_p1) {
-                    uv::hacks::noclip = false;
-                    uv::hacks::noclip_p2 = false;
+                if (ImGui::Checkbox("Player 1", &noclip_p1) && noclip_p1) {
+                    noclip = false;
+                    noclip_p2 = false;
                 }
                 ImGui::SameLine();
-                if (ImGui::Checkbox("Player 2", &uv::hacks::noclip_p2) && uv::hacks::noclip_p2) {
-                    uv::hacks::noclip_p1 = false;
-                    uv::hacks::noclip = false;
+                if (ImGui::Checkbox("Player 2", &noclip_p2) && noclip_p2) {
+                    noclip_p1 = false;
+                    noclip = false;
                 }
+                
+                uv::hacks::set("noclip", noclip);
+                uv::hacks::set("noclip-p1", noclip_p1);
+                uv::hacks::set("noclip-p2", noclip_p2);
                 
                 ImGui::SeparatorText("Hitboxes");
                 
-                ImGui::Checkbox("Show Hitboxes", &uv::hacks::hitboxes);
+                checkbox_id("Show Hitboxes", "hitboxes", false);
                 ImGui::SameLine();
-                ImGui::Checkbox("Show Trajectory", &uv::hacks::hitboxes_trajectory);
-                
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::DragFloat("##Hitboxes Thickness", &uv::hacks::hitboxes_thickness, 0.01f, 0.01f, 3.0f, "Hitboxes Thickness: %.2f", ImGuiSliderFlags_ClampOnInput);
+                checkbox_id("Show Trajectory", "hitboxes-trajectory", false);
 
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::DragInt("##Hitboxes Trajectory Length", &uv::hacks::hitboxes_trajectory_length, 1, 1, 1000, "Trajectory Length: %d frames");
+                
+                float hitboxes_thickness = uv::hacks::get("hitboxes-thickness", 0.3f);
+                ImGui::DragFloat("##Hitboxes Thickness", &hitboxes_thickness, 0.01f, 0.01f, 3.0f, "Hitboxes Thickness: %.2f", ImGuiSliderFlags_AlwaysClamp);
+                uv::hacks::set("hiboxes-thickness", hitboxes_thickness);
+
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                
+                int hitboxes_trajectory_length = uv::hacks::get("hitboxes-trajectory-length", 100);
+                ImGui::DragInt("##Hitboxes Trajectory Length", &hitboxes_trajectory_length, 1, 1, 1000, "Trajectory Length: %d frames");
+                uv::hacks::set("hitboxes-trajectory-length", hitboxes_trajectory_length);
                 
                 if (ImGui::ArrowButton("Hitboxes Colors Collapser", hitboxes_colors_opened ? ImGuiDir_Down : ImGuiDir_Right)) hitboxes_colors_opened = !hitboxes_colors_opened;
                 ImGui::SameLine();
                 ImGui::Text("Hitboxes Colors");
                 
                 if (hitboxes_colors_opened) {
-                    ImGui::ColorEdit4("Hazards", uv::hacks::hitboxes_color_hazards.data());
-                    ImGui::ColorEdit4("Solids", uv::hacks::hitboxes_color_solids.data());
-                    ImGui::ColorEdit4("Specials", uv::hacks::hitboxes_color_specials.data());
-                    ImGui::ColorEdit4("Player", uv::hacks::hitboxes_color_player.data());
+                    std::vector<float> hitboxes_color_hazards = uv::hacks::get<std::vector<float>>("hitboxes-color-hazards", { 1.0f, 0.0f, 0.0f, 1.0f });
+                    std::vector<float> hitboxes_color_fill_hazards = uv::hacks::get<std::vector<float>>("hitboxes-color-fill-hazards", { 1.0f, 0.0f, 0.0f, 0.2f });
+                    std::vector<float> hitboxes_color_solids = uv::hacks::get<std::vector<float>>("hitboxes-color-solids", { 0.0f, 0.0f, 1.0f, 1.0f });
+                    std::vector<float> hitboxes_color_fill_solids = uv::hacks::get<std::vector<float>>("hitboxes-color-fill-solids", { 0.0f, 0.0f, 1.0f, 0.2f });
+                    std::vector<float> hitboxes_color_specials = uv::hacks::get<std::vector<float>>("hitboxes-color-specials", { 0.0f, 1.0f, 0.0f, 1.0f });
+                    std::vector<float> hitboxes_color_fill_specials = uv::hacks::get<std::vector<float>>("hitboxes-color-fill-specials", { 0.0f, 1.0f, 0.0f, 0.2f });
+                    std::vector<float> hitboxes_color_player = uv::hacks::get<std::vector<float>>("hitboxes-color-player", { 1.0f, 1.0f, 0.0f, 1.0f });
+                    std::vector<float> hitboxes_color_fill_player = uv::hacks::get<std::vector<float>>("hitboxes-color-fill-player", { 1.0f, 1.0f, 0.0f, 0.2f });
+                    
+                    ImGui::ColorEdit4("Hazards", hitboxes_color_hazards.data());
+                    ImGui::ColorEdit4("Solids", hitboxes_color_solids.data());
+                    ImGui::ColorEdit4("Specials", hitboxes_color_specials.data());
+                    ImGui::ColorEdit4("Player", hitboxes_color_player.data());
                     ImGui::Spacing();
-                    ImGui::ColorEdit4("Hazards Fill", uv::hacks::hitboxes_color_fill_hazards.data());
-                    ImGui::ColorEdit4("Solids Fill", uv::hacks::hitboxes_color_fill_solids.data());
-                    ImGui::ColorEdit4("Specials Fill", uv::hacks::hitboxes_color_fill_specials.data());
-                    ImGui::ColorEdit4("Player Fill", uv::hacks::hitboxes_color_fill_player.data());
+                    ImGui::ColorEdit4("Hazards Fill", hitboxes_color_fill_hazards.data());
+                    ImGui::ColorEdit4("Solids Fill", hitboxes_color_fill_solids.data());
+                    ImGui::ColorEdit4("Specials Fill", hitboxes_color_fill_specials.data());
+                    ImGui::ColorEdit4("Player Fill", hitboxes_color_fill_player.data());
+                    
+                    uv::hacks::set<std::vector<float>>("hitboxes-color-hazards", hitboxes_color_hazards);
+                    uv::hacks::set<std::vector<float>>("hitboxes-color-fill-hazards", hitboxes_color_fill_hazards);
+                    uv::hacks::set<std::vector<float>>("hitboxes-color-solids", hitboxes_color_solids);
+                    uv::hacks::set<std::vector<float>>("hitboxes-color-fill-solids", hitboxes_color_fill_solids);
+                    uv::hacks::set<std::vector<float>>("hitboxes-color-specials", hitboxes_color_specials);
+                    uv::hacks::set<std::vector<float>>("hitboxes-color-fill-specials", hitboxes_color_fill_specials);
+                    uv::hacks::set<std::vector<float>>("hitboxes-color-player", hitboxes_color_player);
+                    uv::hacks::set<std::vector<float>>("hitboxes-color-fill-player", hitboxes_color_fill_player);
                 }
                     
                 ImGui::SeparatorText("Cosmetic");
-                ImGui::Checkbox("Layout Mode", &uv::hacks::layout_mode);
-                    
+                checkbox_id("Layout Mode", "layout-mode", false);
+                
                 ImGui::SeparatorText("Other");
-                ImGui::Checkbox("Copy Hack", &uv::hacks::copy_hack);
+                checkbox_id("Copy Hack", "copy-hack", false);
                 
                 ImGui::EndTabItem();
             }
@@ -356,7 +400,7 @@ namespace uv::gui {
                         if (ImGui::BeginTabItem("Video")) {
                             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                             if (ImGui::InputTextWithHint("##Video Filename", "Video Filename (e.g. file.mp4)", &video_name)) {
-                                render_opts.output_path = geode::utils::string::pathToString(showcase_path / video_name);
+                                render_opts.output_path = geode::utils::string::pathToString(uv::showcase_path / video_name);
                             }
 
                             // This is probably too overengineered but I don't care
@@ -423,7 +467,7 @@ namespace uv::gui {
                             
                             ImGui::Spacing();
                             
-                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
+                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(uv::showcase_path);
 
                             space_without_text = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 3) / 4;
 
@@ -475,7 +519,7 @@ namespace uv::gui {
                         if (ImGui::BeginTabItem("Audio")) {
                             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                             if (ImGui::InputTextWithHint("##Audio Filename", "Audio Filename (e.g. file.wav)", &audio_name)) {
-                                audio_opts.output_path = geode::utils::string::pathToString(showcase_path / audio_name);
+                                audio_opts.output_path = geode::utils::string::pathToString(uv::showcase_path / audio_name);
                             }
 
                             ImGui::Spacing();
@@ -488,7 +532,7 @@ namespace uv::gui {
                             
                             ImGui::Spacing();
                             
-                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
+                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(uv::showcase_path);
 
                             ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
                             
@@ -521,17 +565,17 @@ namespace uv::gui {
                             
                             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                             if (ImGui::InputTextWithHint("##Merge Video Filename", "Video Filename (e.g. file.mp4)", &merge_video_name)) {
-                                merge_video_path = geode::utils::string::pathToString(showcase_path / merge_video_name);
+                                merge_video_path = geode::utils::string::pathToString(uv::showcase_path / merge_video_name);
                             }
                             
                             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                             if (ImGui::InputTextWithHint("##Merge Audio Filename", "Audio Filename (e.g. file.wav)", &merge_audio_name)) {
-                                merge_audio_path = geode::utils::string::pathToString(showcase_path / merge_audio_name);
+                                merge_audio_path = geode::utils::string::pathToString(uv::showcase_path / merge_audio_name);
                             }
                             
                             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                             if (ImGui::InputTextWithHint("##Merge Output Filename", "Output Filename (e.g. file +music.mp4)", &merge_output_name)) {
-                                merge_output_path = geode::utils::string::pathToString(showcase_path / merge_audio_name);
+                                merge_output_path = geode::utils::string::pathToString(uv::showcase_path / merge_audio_name);
                             }
                             
                             ImGui::Spacing();
@@ -541,7 +585,7 @@ namespace uv::gui {
                            
                             ImGui::Spacing();
                             
-                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
+                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(uv::showcase_path);
 
                             ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
 
@@ -586,7 +630,7 @@ namespace uv::gui {
                            
                             ImGui::Spacing();
                             
-                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(showcase_path);
+                            if (ImGui::Button("Open Showcases folder", { ImGui::GetContentRegionAvail().x, 0 })) geode::utils::file::openFolder(uv::showcase_path);
 
                             #define replace(s, h, n) do { \
                                 pos = (s).find((h)); \
@@ -596,7 +640,7 @@ namespace uv::gui {
                             if (ImGui::Button("Run", { ImGui::GetContentRegionAvail().x, 0 })) {
                                 std::string args = raw_arguments;
                                 size_t pos;
-                                replace(args, "{showcases}", geode::utils::string::pathToString(showcase_path));
+                                replace(args, "{showcases}", geode::utils::string::pathToString(uv::showcase_path));
                                 replace(args, "\n", " ");
                                 uv::recorder::raw(args);
                             }
@@ -609,6 +653,26 @@ namespace uv::gui {
                         ImGui::EndTabBar();
                     }
                 }
+                
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Settings")) {
+                int keybind = uv::hacks::get<int>("menu-keybind", GLFW_KEY_DELETE);
+                int keybind_mods = uv::hacks::get<int>("menu-keybind-mods", 0);
+                
+                ImGui::Text("Menu Keybind:");
+                ImGui::RadioButton("Delete", &keybind, GLFW_KEY_DELETE);
+                ImGui::RadioButton("Tab", &keybind, GLFW_KEY_TAB);
+                ImGui::RadioButton("Minus Sign", &keybind, GLFW_KEY_MINUS);
+
+                ImGui::Text("Menu Keybind Modifiers:");
+                ImGui::CheckboxFlags("Shift", &keybind_mods, GLFW_MOD_SHIFT);
+                ImGui::CheckboxFlags("Control", &keybind_mods, GLFW_MOD_CONTROL);
+                ImGui::CheckboxFlags("Alt", &keybind_mods, GLFW_MOD_ALT);
+                
+                uv::hacks::set<int>("menu-keybind", keybind);
+                uv::hacks::set<int>("menu-keybind-mods", keybind_mods);
                 
                 ImGui::EndTabItem();
             }
@@ -645,10 +709,57 @@ namespace uv::gui {
                 if (ImGui::Button("WAVWRITER")) FMODAudioEngine::sharedEngine()->m_system->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
                 if (ImGui::Button("AUTODETECT")) FMODAudioEngine::sharedEngine()->m_system->setOutput(FMOD_OUTPUTTYPE_AUTODETECT);
                 
+                ImGui::Text("Last key pressed: %d", _last_key);
+                
                 ImGui::EndTabItem();
             }
 
             ImGui::EndTabBar();
+        }
+    }
+    
+    void draw(void) {
+        bool animating = std::chrono::steady_clock::now() - toggle_time < animation_duration;
+        if (!show && !animating) return;
+
+        if (animating) {
+            float alpha_value = (std::chrono::steady_clock::now() - toggle_time).count() / static_cast<float>(animation_duration.count());
+            if (!show) alpha_value = 1.0f - alpha_value;
+            // Apply Cubic InOut easing
+            float intermediate = (-2 * alpha_value) + 2;
+            alpha_value = alpha_value < 0.5f ? 4 * alpha_value * alpha_value * alpha_value : 1 - (intermediate * intermediate * intermediate) / 2;
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha_value);
+        }
+
+        if (uv::bot::current_state == uv::bot::state::recording) {
+            ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.23f, 0.13f, 0.13f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.27f, 0.17f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.23f, 0.13f, 0.13f, 1.0f));
+            pushed_colors = true;
+        } else if (uv::bot::current_state == uv::bot::state::playing) {
+            ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.13f, 0.23f, 0.13f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.17f, 0.27f, 0.17f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.13f, 0.23f, 0.13f, 1.0f));
+            pushed_colors = true;
+        }
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(400.0f, 200.0f));
+
+        int flags = uv::bot::physic_player_1_actions.size() ? ImGuiWindowFlags_UnsavedDocument : 0;
+        if (uv::bot::current_state == uv::bot::state::recording) ImGui::Begin("uvBot - Recording###uvBot", nullptr, flags);
+        else if (uv::bot::current_state == uv::bot::state::playing) ImGui::Begin("uvBot - Playing###uvBot", nullptr, flags);
+        else ImGui::Begin("uvBot###uvBot", nullptr, flags);
+
+        if (uv::installed_conflict_mods.empty()) draw_main_ui();
+        else {
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::Text("Some currently installed and enabled mods conflict with uvBot. Uninstall or disable them to use this mod.");
+            ImGui::Text("Conflicting mods:");
+            for (auto &i : uv::installed_conflict_mods) {
+                ImGui::Bullet();
+                ImGui::Text(i.c_str());
+            }
+            ImGui::PopTextWrapPos();
         }
         
         ImGui::End();
@@ -674,11 +785,12 @@ class $modify(cocos2d::CCEGLView) {
         CCEGLView::onGLFWKeyCallback(window, key, scancode, action, mods);
 
         if (action == GLFW_PRESS) {
-            if (key == GLFW_KEY_TAB) {
+            if (key == uv::hacks::get<int>("menu-keybind", GLFW_KEY_DELETE) && mods == uv::hacks::get<int>("menu-keybind-mods", 0)) {
                 uv::gui::toggle_time = std::chrono::steady_clock::now();
-                if (!(uv::gui::show = !uv::gui::show)) uv::hacks::save();
+                uv::gui::show = !uv::gui::show;
             }
             if (key == GLFW_KEY_7 && mods == GLFW_MOD_CONTROL && uv::gui::show) uv::gui::debug = !uv::gui::debug;
+            uv::gui::_last_key = key;
         }
     }
 };

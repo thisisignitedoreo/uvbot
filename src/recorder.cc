@@ -21,15 +21,15 @@ namespace uv::recorder {
         cocos2d::CCTexture2D *texture;
     };
 
-    static render_texture rt;
-
     bool recording = false;
-    static bool frame_has_data = false;
     std::mutex mutex;
 
     options recording_options;
 
-    void *frame_buffer = nullptr;
+    static render_texture rt;
+
+    static void *frame_buffer = nullptr;
+    static bool frame_has_data = false;
 
     static subprocess::Popen process;
     static bool process_running = false;
@@ -120,8 +120,8 @@ namespace uv::recorder {
                 mutex.lock();
                 if (frame_has_data) {
                     process.m_stdin.write(frame_buffer, opt.width * opt.height * 3);
-                    frame_has_data = false;
                 }
+                frame_has_data = false;
                 mutex.unlock();
             }
             process.close();
@@ -378,7 +378,7 @@ class $modify(cocos2d::CCScheduler) {
         if (uv::recorder::recording) {
             cocos2d::CCScheduler::update(1.0f / uv::recorder::recording_options.fps);
         } else {
-            cocos2d::CCScheduler::update(uv::hacks::lock_delta ? cocos2d::CCDirector::get()->getAnimationInterval() : dt);
+            cocos2d::CCScheduler::update(uv::hacks::get("lock-delta", false) ? cocos2d::CCDirector::get()->getAnimationInterval() : dt);
         }
     }
 };
