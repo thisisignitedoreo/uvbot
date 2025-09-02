@@ -127,6 +127,11 @@ namespace uv {
             
             void update(GJBaseGameLayer *gjbgl, PlayerObject *trajectory_players[2], cocos2d::CCDrawNode *trajectory_node);
         }
+
+        namespace frame_stepper {
+            extern bool on;
+            extern int step_for;
+        }
     }
     
     namespace practice_fix {

@@ -2,6 +2,7 @@
 
 #include <Geode/Geode.hpp>
 
+#include <Geode/modify/PlayerObject.hpp>
 #include <Geode/modify/GJBaseGameLayer.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 
@@ -20,7 +21,7 @@ namespace uv::bot {
     state current_state = state::none;
 
     bool permit_press = false;
-    bool holding = false;
+    bool p1_holding, p2_holding = false;
 
     const unsigned char macro_version = 2;
     
@@ -44,8 +45,10 @@ namespace uv::bot {
 
     bool button(bool held, int button, bool player_1) {
         if (current_state == state::recording) {
-            if (!held && !holding) return true;
-            holding = held;
+            if (player_1 && held == p1_holding) return true;
+            if (!player_1 && held == p2_holding) return true;
+            if (player_1) p1_holding = held;
+            else p2_holding = held;
             
             // Map button + player_1 to 0..5
             int action_button = button + ((1 - player_1) * 3 - 1);
@@ -74,7 +77,7 @@ namespace uv::bot {
                 
                 int button = (this_action.flags >> 1) % 3 + 1;
                 permit_press = true;
-                self->handleButton(this_action.flags & 1, button, (this_action.flags >> 1) > 2);
+                self->handleButton(this_action.flags & 1, button, (this_action.flags >> 1) < 3);
                 permit_press = false;
                 
                 current_input_action++;
@@ -258,22 +261,41 @@ namespace uv::bot {
     }
 }
 
+/*class $modify(PlayerObject) {
+    void pushButton(PlayerButton button) {
+        if (uv::bot::current_state != uv::bot::playing || uv::bot::permit_press) PlayerObject::pushButton(button);
+    }
+    
+    void releaseButton(PlayerButton button) {
+        if (uv::bot::current_state != uv::bot::playing || uv::bot::permit_press) PlayerObject::releaseButton(button);
+    }
+};*/
 
 class $modify(GJBaseGameLayer) {
     void handleButton(bool down, int button, bool isPlayer1) {
-        if (uv::bot::button(down, button, isPlayer1)) {
+        if (!PlayLayer::get()) {
             GJBaseGameLayer::handleButton(down, button, isPlayer1);
+            return;
         }
+        if (uv::bot::button(down, button, isPlayer1)) GJBaseGameLayer::handleButton(down, button, isPlayer1);
     }
 
     void processCommands(float dt) {
+        if (!PlayLayer::get()) {
+            GJBaseGameLayer::processCommands(dt);
+            return;
+        }
         GJBaseGameLayer::processCommands(dt);
         uv::bot::update_input(this, dt);
     }
 
     void update(float dt) {
+        if (!PlayLayer::get()) {
+            GJBaseGameLayer::update(dt);
+            return;
+        }
         GJBaseGameLayer::update(dt);
-        uv::bot::update_physics(this, dt);
+        if (uv::hacks::get("accuracy-fix", true)) uv::bot::update_physics(this, dt);
     }
 };
 

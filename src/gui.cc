@@ -8,6 +8,8 @@
 
 #include <Geode/modify/CCEGLView.hpp>
 
+#include "key_to_string.hh"
+
 #include "common.hh"
 
 namespace uv::gui {
@@ -16,6 +18,8 @@ namespace uv::gui {
     std::chrono::steady_clock::time_point toggle_time;
     
     static int _last_key = 0;
+    static int key = 0;
+    static const char *last_id = nullptr;
     
     static bool show_demo = false, show_style_editor = false, pushed_colors = false, hitboxes_colors_opened = false;
     
@@ -154,7 +158,21 @@ namespace uv::gui {
         style.Colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
         style.Colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
     }
+    
+    static void keycode_selector(const char *id, int d) {
+        bool selected = last_id && !std::strcmp(id, last_id);
 
+        if (ImGui::Button(selected ? "..." : KeyCodeToStringSwitch(uv::hacks::get(id, d)), { ImGui::CalcTextSize("KeypadMultiply").x, 0 })) {
+            key = 0;
+            last_id = id;
+        }
+
+        if (selected && key != 0) {
+            last_id = nullptr;
+            uv::hacks::set(id, key);
+        }
+    }
+    
     static void draw_main_ui(void) {
         if (ImGui::BeginTabBar("uvBot TabBar")) {
             if (ImGui::BeginTabItem("Bot")) {
@@ -299,6 +317,8 @@ namespace uv::gui {
                 ImGui::SetItemTooltip("Disables frame skip when the game can't keep up with the target FPS.\nUseful for showcasing.");
                 
                 checkbox_id("Practice Fix", "practice-fix", true);
+                
+                checkbox_id("Accuracy Fix", "accuracy-fix", true);
 
                 ImGui::SeparatorText("Player");
                 
@@ -575,7 +595,7 @@ namespace uv::gui {
                             
                             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                             if (ImGui::InputTextWithHint("##Merge Output Filename", "Output Filename (e.g. file +music.mp4)", &merge_output_name)) {
-                                merge_output_path = geode::utils::string::pathToString(uv::showcase_path / merge_audio_name);
+                                merge_output_path = geode::utils::string::pathToString(uv::showcase_path / merge_output_name);
                             }
                             
                             ImGui::Spacing();
@@ -658,21 +678,34 @@ namespace uv::gui {
             }
 
             if (ImGui::BeginTabItem("Settings")) {
-                int keybind = uv::hacks::get<int>("menu-keybind", GLFW_KEY_DELETE);
-                int keybind_mods = uv::hacks::get<int>("menu-keybind-mods", 0);
+                ImGui::SeparatorText("Menu Keybind");
+                ImGui::Text("Keybind:");
+                ImGui::SameLine();
+                keycode_selector("menu-keybind", GLFW_KEY_DELETE);
                 
-                ImGui::Text("Menu Keybind:");
-                ImGui::RadioButton("Delete", &keybind, GLFW_KEY_DELETE);
-                ImGui::RadioButton("Tab", &keybind, GLFW_KEY_TAB);
-                ImGui::RadioButton("Minus Sign", &keybind, GLFW_KEY_MINUS);
+                int keybind_mods = uv::hacks::get<int>("menu-keybind-mods", 0);
 
-                ImGui::Text("Menu Keybind Modifiers:");
+                ImGui::Spacing();
+                
                 ImGui::CheckboxFlags("Shift", &keybind_mods, GLFW_MOD_SHIFT);
+                ImGui::SameLine();
                 ImGui::CheckboxFlags("Control", &keybind_mods, GLFW_MOD_CONTROL);
+                ImGui::SameLine();
                 ImGui::CheckboxFlags("Alt", &keybind_mods, GLFW_MOD_ALT);
                 
-                uv::hacks::set<int>("menu-keybind", keybind);
                 uv::hacks::set<int>("menu-keybind-mods", keybind_mods);
+                
+                ImGui::SeparatorText("Frame Stepper Keybinds");
+                
+                ImGui::Text("Toggle Keybind:");
+                ImGui::SameLine();
+                keycode_selector("frame-stepper-toggle-keybind", GLFW_KEY_C);
+                
+                ImGui::Spacing();
+                
+                ImGui::Text("Keybind:");
+                ImGui::SameLine();
+                keycode_selector("frame-stepper-step-keybind", GLFW_KEY_V);
                 
                 ImGui::EndTabItem();
             }
@@ -706,10 +739,8 @@ namespace uv::gui {
                 if (ImGui::Button(show_demo ? "Hide Demo window" : "Show Demo window")) show_demo = !show_demo;
                 if (ImGui::Button(show_style_editor ? "Hide Style Editor window" : "Show Style Editor window")) show_style_editor = !show_style_editor;
 
-                if (ImGui::Button("WAVWRITER")) FMODAudioEngine::sharedEngine()->m_system->setOutput(FMOD_OUTPUTTYPE_WAVWRITER);
-                if (ImGui::Button("AUTODETECT")) FMODAudioEngine::sharedEngine()->m_system->setOutput(FMOD_OUTPUTTYPE_AUTODETECT);
-                
                 ImGui::Text("Last key pressed: %d", _last_key);
+                ImGui::Text("Frame: %d", uv::bot::get_frame());
                 
                 ImGui::EndTabItem();
             }
@@ -789,8 +820,13 @@ class $modify(cocos2d::CCEGLView) {
                 uv::gui::toggle_time = std::chrono::steady_clock::now();
                 uv::gui::show = !uv::gui::show;
             }
+            if (key == uv::hacks::get<int>("frame-stepper-toggle-keybind", GLFW_KEY_C) && mods == 0) uv::hacks::frame_stepper::on = !uv::hacks::frame_stepper::on;
+            if (key == uv::hacks::get<int>("frame-stepper-step-keybind", GLFW_KEY_V) && mods == 0) uv::hacks::frame_stepper::step_for++;
+            
             if (key == GLFW_KEY_7 && mods == GLFW_MOD_CONTROL && uv::gui::show) uv::gui::debug = !uv::gui::debug;
+            
             uv::gui::_last_key = key;
+            uv::gui::key = key;
         }
     }
 };

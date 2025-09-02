@@ -29,7 +29,6 @@ $on_mod(Loaded) {
     const std::vector<std::string> conflict_mods = {
         "syzzi.click_between_frames",
         "tobyadd.gdh",
-        "chagh.tcbot",
     };
 
     for (auto &mod : conflict_mods) {

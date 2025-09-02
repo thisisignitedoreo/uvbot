@@ -602,8 +602,6 @@ namespace uv::practice_fix {
     }
 }
 
-/*
-
 static bool override_rotation = false;
 
 // Funky GD physics lmao
@@ -647,12 +645,10 @@ class $modify(PlayLayer) {
     void loadFromCheckpoint(CheckpointObject *cp) {
         PlayLayer::loadFromCheckpoint(cp);
 
-        if (uv::hacks::practice_fix) {
+        if (uv::hacks::get<bool>("practice-fix", true)) {
             uv::practice_fix::restore_playerobject(this->m_player1, static_cast<HookedCheckpointObject*>(cp)->m_fields->p1);
             if (this->m_player2) uv::practice_fix::restore_playerobject(this->m_player2, static_cast<HookedCheckpointObject*>(cp)->m_fields->p2);
             override_rotation = true;
         }
     }
 };
-
-*/

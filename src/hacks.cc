@@ -18,60 +18,9 @@ static float left_over = 0.0f;
 #define POLYGON_FROM_RECT(r) { cocos2d::CCPoint((r).getMinX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMinY()), cocos2d::CCPoint((r).getMaxX(), (r).getMaxY()), cocos2d::CCPoint((r).getMinX(), (r).getMaxY()) }
 
 class $modify(GJBaseGameLayer) {
-    void addObject(GameObject *obj) {
-        if (uv::hacks::get("layout-mode", false)) {
-            obj->m_detailUsesHSV = false;
-            obj->m_baseUsesHSV = false;
-            obj->setOpacity(255);
-            obj->setVisible(true);
-            
-            switch (obj->m_objectID) {
-            // Thanks toby
-            case 899:
-            case 900:
-            case 29:
-            case 30:
-            case 104:
-            case 105:
-            case 221:
-            case 717:
-            case 718:
-            case 743:
-            case 744:
-            case 915:
-            case 1006:
-            case 1007:
-            case 1520:
-            case 2903:
-            case 3029:
-            case 3030:
-            case 3031:
-            case 2999:
-            case 3606:
-            case 3612:
-            case 3010:
-            case 3015:
-            case 3021:
-            case 3009:
-            case 3014:
-            case 3020:
-            case 1818:
-            case 1819:
-            case 33:
-            case 32:
-            case 1613:
-            case 1612:
-            case 3608:
-                return;
-            }
-        }
-        
-        this->addObject(obj);
-    }
-    
     void updateDebugDraw(void) {
         debug_update = true;
-        this->updateDebugDraw();
+        GJBaseGameLayer::updateDebugDraw();
         debug_update = false;
 
         // Thanks toby
@@ -117,11 +66,64 @@ class $modify(GJBaseGameLayer) {
 };
 
 class $modify(PlayLayer) {
+    void addObject(GameObject *obj) {
+        if (uv::hacks::get("layout-mode", false)) {
+            obj->m_detailUsesHSV = false;
+            obj->m_baseUsesHSV = false;
+            obj->setOpacity(255);
+            obj->setVisible(true);
+            obj->m_activeMainColorID = -1;
+            obj->m_activeDetailColorID = -1;
+            
+            switch (obj->m_objectID) {
+            // Thanks toby
+            case 899:
+            case 900:
+            case 29:
+            case 30:
+            case 104:
+            case 105:
+            case 221:
+            case 717:
+            case 718:
+            case 743:
+            case 744:
+            case 915:
+            case 1006:
+            case 1007:
+            case 1520:
+            case 2903:
+            case 3029:
+            case 3030:
+            case 3031:
+            case 2999:
+            case 3606:
+            case 3612:
+            case 3010:
+            case 3015:
+            case 3021:
+            case 3009:
+            case 3014:
+            case 3020:
+            case 1818:
+            case 1819:
+            case 33:
+            case 32:
+            case 1613:
+            case 1612:
+            case 3608:
+                return;
+            }
+        }
+        
+        PlayLayer::addObject(obj);
+    }
+    
     void updateProgressbar(void) {
         PlayLayer::updateProgressbar();
 
         // 0166 -> Is "Show Hitboxes" option on?
-        if (uv::hacks::get("hitboxes", false) && !this->m_isPracticeMode || !GameManager::get()->getGameVariable("0166")) PlayLayer::updateDebugDraw();
+        if (uv::hacks::get("hitboxes", false) && (!this->m_isPracticeMode || !GameManager::get()->getGameVariable("0166"))) PlayLayer::updateDebugDraw();
         this->m_debugDrawNode->setVisible(uv::hacks::get("hitboxes", false));
     }
 
