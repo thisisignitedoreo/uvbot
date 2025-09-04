@@ -8,12 +8,12 @@ WARNING: You are kinda early. This is still in heavy development
 
 Features include:
 
-* Good accuracy (Hardest recorded level by me is Thinking Space II)
+* Good accuracy (Hardest recorded level by me is Flamewall I think?)
 * Standalone-ness (You don't need an additional mod menu to use this bot efficiently)
 * Internal Recorder
 
 == Quickstart
-Compile it or download from https://github.com/thisisignitedoreo/uvbot/actions[Actions]
+Compile it, download from https://github.com/thisisignitedoreo/uvbot/actions[Actions] or from https://github.com/thisisignitedoreo/uvbot/releases[Releases]
 
 == `.uv` format
 The file format is as follows:
@@ -46,7 +46,10 @@ struct physic {
 
 struct replay {
     char front_magic[5] = "UVBOT";
-    uint8_t version = 1;
+    uint8_t version = 2;
+#if version == 2
+    float tps;
+#endif
     int32_t inputs, physics_p1, physics_p2;
     struct input input_actions[inputs];
     struct physic physic_p1_actions[inputs];
