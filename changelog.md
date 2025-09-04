@@ -1,4 +1,17 @@
 
+# v0.2.0-beta
+
+- Make the bot a lot more accurate
+- Change main keybind to <Right Shift>
+- Add keybind switcher
+- Add TPS bypass
+- Add foreign macro support (only .re3 and .slc for now)
+- Add frame stepper
+- Improve practice fix a lot
+- Make accuracy fix a separate toggleable option
+- Fix layout mode (it was broken apparently lol)
+- Fix a lot of small bugs, mod incompatibilities and crashes
+
 # v0.1.3-beta
 
 - Add trajectory tracer
