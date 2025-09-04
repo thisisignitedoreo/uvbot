@@ -2,7 +2,7 @@
 # v0.2.0-beta
 
 - Make the bot a lot more accurate
-- Change main keybind to <Right Shift>
+- Change main keybind to &gt;Right Shift&lt;
 - Add keybind switcher
 - Add TPS bypass
 - Add foreign macro support (only .re3 and .slc for now)
