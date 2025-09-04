@@ -66,6 +66,8 @@ namespace uv {
             enum error {
                 none = 0,
                 unsupported,
+                unsupported_slc_v2,
+                unsupported_slc_v3,
             };
             
             extern std::vector<std::string> supported_exts;

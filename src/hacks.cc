@@ -72,8 +72,6 @@ class $modify(PlayLayer) {
             obj->m_baseUsesHSV = false;
             obj->setOpacity(255);
             obj->setVisible(true);
-            obj->m_activeMainColorID = -1;
-            obj->m_activeDetailColorID = -1;
             
             switch (obj->m_objectID) {
             // Thanks toby
@@ -91,7 +89,6 @@ class $modify(PlayLayer) {
             case 915:
             case 1006:
             case 1007:
-            case 1520:
             case 2903:
             case 3029:
             case 3030:
@@ -114,6 +111,7 @@ class $modify(PlayLayer) {
             case 3608:
                 return;
             }
+            if (obj->m_objectID == 1520 && uv::hacks::get("layout-mode-shake", true)) return;
         }
         
         PlayLayer::addObject(obj);
@@ -127,16 +125,25 @@ class $modify(PlayLayer) {
         this->m_debugDrawNode->setVisible(uv::hacks::get("hitboxes", false));
     }
 
+    #define FLOAT_COL_TO_COLOR3B(x) (cocos2d::ccColor3B { static_cast<unsigned char>((x)[0] * 255), static_cast<unsigned char>((x)[1] * 255), static_cast<unsigned char>((x)[1] * 255) })
+    
     // Thanks toby
     void updateColor(cocos2d::ccColor3B &color, float fadeTime, int colorID, bool blending, float opacity, cocos2d::ccHSVValue &copyHSV, int colorIDToCopy, bool copyOpacity, EffectGameObject *callerObject, int unk1, int unk2) {
         cocos2d::ccColor3B copy_color = color;
         if (uv::hacks::get("layout-mode", false)) {
-            if (colorID == 1000) copy_color = {0, 0, 0};
-            else if (colorID == 1001) copy_color = {0, 0, 0};
-            else if (colorID == 1002) copy_color = {255, 255, 255};
-            else if (colorID == 1009) copy_color = {0, 0, 0};
-            else if (colorID == 1013 || colorID == 1014) copy_color = {0, 0, 0};
-            else copy_color = {255, 255, 255};
+            std::vector<float> bg = uv::hacks::get<std::vector<float>>("layout-mode-bg-color", { 0.0f, 0.0f, 0.0f });
+            std::vector<float> g  = uv::hacks::get<std::vector<float>>("layout-mode-ground-color", { 0.0f, 0.0f, 0.0f });
+            std::vector<float> l  = uv::hacks::get<std::vector<float>>("layout-mode-line-color", { 1.0f, 1.0f, 1.0f });
+            std::vector<float> mg = uv::hacks::get<std::vector<float>>("layout-mode-mg-color", { 0.0f, 0.0f, 0.0f });
+            std::vector<float> ee = uv::hacks::get<std::vector<float>>("layout-mode-ee-color", { 1.0f, 1.0f, 1.0f });
+            
+            if (colorID == 1000) copy_color = FLOAT_COL_TO_COLOR3B(bg);
+            else if (colorID == 1001) copy_color = FLOAT_COL_TO_COLOR3B(g);
+            else if (colorID == 1002) copy_color = FLOAT_COL_TO_COLOR3B(l);
+            else if (colorID == 1009) copy_color = FLOAT_COL_TO_COLOR3B(g);
+            else if (colorID == 1013 || colorID == 1014) copy_color = FLOAT_COL_TO_COLOR3B(mg);
+            else copy_color = FLOAT_COL_TO_COLOR3B(ee);
+            blending = false;
         }
 
         PlayLayer::updateColor(copy_color, fadeTime, colorID, blending, opacity, copyHSV, colorIDToCopy, copyOpacity, callerObject, unk1, unk2);
@@ -171,6 +178,7 @@ class $modify(GameObject) {
     void addGlow(gd::string p0) {
         GameObject::addGlow(p0);
         if (uv::hacks::get("layout-mode", false) && this->m_objectType == GameObjectType::Decoration) this->m_isHide = true;
+        if (uv::hacks::get("show-triggers", false) && this->isTrigger()) this->m_isHide = false;
     }
 
     // Thanks cvolton, unthanks robtop

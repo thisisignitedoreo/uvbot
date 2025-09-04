@@ -21,7 +21,7 @@ namespace uv::gui {
     static int key = 0;
     static const char *last_id = nullptr;
     
-    static bool show_demo = false, show_style_editor = false, pushed_colors = false, hitboxes_colors_opened = false;
+    static bool show_demo = false, show_style_editor = false, pushed_colors = false, hitboxes_colors_opened = false, lm_colors_opened = false;
     
     static std::string macro_name, video_name, audio_name;
     
@@ -229,6 +229,7 @@ namespace uv::gui {
 
                 bool not_empty = false;
                 std::error_code error;
+                uv::bot::foreign::error load_error = uv::bot::foreign::error::none;
                 for (auto const &dir_entry : std::filesystem::directory_iterator(uv::macro_path, error)) {
                     not_empty = true; // I am too lazy to do this the right way
                     std::string dir_str = geode::utils::string::pathToString(dir_entry.path());
@@ -250,7 +251,7 @@ namespace uv::gui {
                                     if (from == std::string::npos) from = 0;
                                     std::string name = path.substr(from + 1, path.size() - from - 1);
                                     if (ImGui::Button(name.c_str(), { ImGui::GetContentRegionAvail().x, 0 })) {
-                                        uv::bot::foreign::load(name);
+                                        load_error = uv::bot::foreign::load(name);
                                         macro_name = name.substr(0, name.rfind("."));
                                         if (!uv::hacks::set<bool>("shown-foriegn-macro-warn", true)) ImGui::OpenPopup("Hey!##Foreign Macro Popup");
                                     }
@@ -264,10 +265,35 @@ namespace uv::gui {
 
                 if (error) geode::log::debug("Error reading macro directory: {}", error.message());
 
+                if (load_error == uv::bot::foreign::error::unsupported_slc_v2) ImGui::OpenPopup("Unsupported!##SLC v2");
+                if (load_error == uv::bot::foreign::error::unsupported_slc_v3) ImGui::OpenPopup("Unsupported!##SLC v3");
+                if (load_error == uv::bot::foreign::error::unsupported) ImGui::OpenPopup("Unsupported!");
+
                 if (ImGui::BeginPopupModal("Hey!##Foreign Macro Popup")) {
                     ImGui::Text("You are loading a foreign macro, meaning the macro is made by and for another bot.\n"
                     "This macro is not guaranteed to play as well as the original, and/or be accurate.\n"
                     "Think of this feature as a built in macro converter.");
+                    ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                    if (ImGui::Button("Okay, got it!", { ImGui::GetContentRegionAvail().x, 0 })) ImGui::CloseCurrentPopup();
+                    ImGui::EndPopup();
+                }
+
+                if (ImGui::BeginPopupModal("Unsupported!##SLC v2")) {
+                    ImGui::Text("This macro is SLC v2, and it is not currently a supported format.\nIt is planned however - you'll have to wait for version v0.2.1");
+                    ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                    if (ImGui::Button("Okay, got it!", { ImGui::GetContentRegionAvail().x, 0 })) ImGui::CloseCurrentPopup();
+                    ImGui::EndPopup();
+                }
+
+                if (ImGui::BeginPopupModal("Unsupported!##SLC v3")) {
+                    ImGui::Text("This macro is SLC v3, and it is not currently a supported format.\nIt is planned however - you'll have to wait for version v0.2.1");
+                    ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
+                    if (ImGui::Button("Okay, got it!", { ImGui::GetContentRegionAvail().x, 0 })) ImGui::CloseCurrentPopup();
+                    ImGui::EndPopup();
+                }
+
+                if (ImGui::BeginPopupModal("Unsupported!")) {
+                    ImGui::Text("This macro is unsupported. No further information.");
                     ImGui::Dummy(ImVec2(0, ImGui::GetWindowSize().y - ImGui::GetCursorPosY() - ImGui::GetTextLineHeight() - ImGui::GetStyle().FramePadding.y * 2.0f - ImGui::GetStyle().WindowPadding.y * 2));
                     if (ImGui::Button("Okay, got it!", { ImGui::GetContentRegionAvail().x, 0 })) ImGui::CloseCurrentPopup();
                     ImGui::EndPopup();
@@ -396,9 +422,36 @@ namespace uv::gui {
                     uv::hacks::set<std::vector<float>>("hitboxes-color-player", hitboxes_color_player);
                     uv::hacks::set<std::vector<float>>("hitboxes-color-fill-player", hitboxes_color_fill_player);
                 }
-                    
-                ImGui::SeparatorText("Cosmetic");
+                
+                ImGui::SeparatorText("Layout Mode");
                 checkbox_id("Layout Mode", "layout-mode", false);
+                checkbox_id("Remove Shake Triggers", "layout-mode-shake", true);
+                ImGui::Spacing();
+                // checkbox_id("Show Triggers", "show-triggers", false);
+                // ImGui::Spacing();
+                if (ImGui::ArrowButton("Layout Mode Colors Opener", lm_colors_opened ? ImGuiDir_Down : ImGuiDir_Right)) lm_colors_opened = !lm_colors_opened;
+                ImGui::SameLine();
+                ImGui::Text("Layout Mode Colors");
+                
+                if (lm_colors_opened) {
+                    std::vector<float> bg = uv::hacks::get<std::vector<float>>("layout-mode-bg-color", { 0.0f, 0.0f, 0.0f });
+                    std::vector<float> g  = uv::hacks::get<std::vector<float>>("layout-mode-ground-color", { 0.0f, 0.0f, 0.0f });
+                    std::vector<float> l  = uv::hacks::get<std::vector<float>>("layout-mode-line-color", { 1.0f, 1.0f, 1.0f });
+                    std::vector<float> mg = uv::hacks::get<std::vector<float>>("layout-mode-mg-color", { 0.0f, 0.0f, 0.0f });
+                    std::vector<float> ee = uv::hacks::get<std::vector<float>>("layout-mode-ee-color", { 1.0f, 1.0f, 1.0f });
+                    
+                    ImGui::ColorEdit3("BG", bg.data());
+                    ImGui::ColorEdit3("Ground", g.data());
+                    ImGui::ColorEdit3("Line", l.data());
+                    ImGui::ColorEdit3("MG", mg.data());
+                    ImGui::ColorEdit3("Everything else", ee.data());
+                    
+                    uv::hacks::set<std::vector<float>>("layout-mode-bg-color", bg);
+                    uv::hacks::set<std::vector<float>>("layout-mode-ground-color", g);
+                    uv::hacks::set<std::vector<float>>("layout-mode-line-color", l);
+                    uv::hacks::set<std::vector<float>>("layout-mode-mg-color", mg);
+                    uv::hacks::set<std::vector<float>>("layout-mode-ee-color", ee);
+                }
                 
                 ImGui::SeparatorText("Other");
                 checkbox_id("Copy Hack", "copy-hack", false);
@@ -679,32 +732,41 @@ namespace uv::gui {
 
             if (ImGui::BeginTabItem("Settings")) {
                 ImGui::SeparatorText("Menu Keybind");
-                ImGui::Text("Keybind:");
+
+                ImGui::Dummy(ImVec2(0, ImGui::GetFrameHeight() - ImGui::GetTextLineHeightWithSpacing()));
+                ImGui::Text("Toggle:");
                 ImGui::SameLine();
-                keycode_selector("menu-keybind", GLFW_KEY_DELETE);
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing());
+                keycode_selector("menu-keybind", GLFW_KEY_RIGHT_SHIFT);
                 
                 int keybind_mods = uv::hacks::get<int>("menu-keybind-mods", 0);
 
-                ImGui::Spacing();
-                
+                ImGui::Dummy(ImVec2(0, ImGui::GetFrameHeight() - ImGui::GetTextLineHeightWithSpacing()));
+                ImGui::Text("Modifiers:");
+                ImGui::SameLine();
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing());
                 ImGui::CheckboxFlags("Shift", &keybind_mods, GLFW_MOD_SHIFT);
                 ImGui::SameLine();
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing());
                 ImGui::CheckboxFlags("Control", &keybind_mods, GLFW_MOD_CONTROL);
                 ImGui::SameLine();
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing());
                 ImGui::CheckboxFlags("Alt", &keybind_mods, GLFW_MOD_ALT);
                 
                 uv::hacks::set<int>("menu-keybind-mods", keybind_mods);
                 
                 ImGui::SeparatorText("Frame Stepper Keybinds");
                 
-                ImGui::Text("Toggle Keybind:");
+                ImGui::Dummy(ImVec2(0, ImGui::GetFrameHeight() - ImGui::GetTextLineHeightWithSpacing()));
+                ImGui::Text("Toggle:");
                 ImGui::SameLine();
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing());
                 keycode_selector("frame-stepper-toggle-keybind", GLFW_KEY_C);
-                
-                ImGui::Spacing();
-                
-                ImGui::Text("Keybind:");
+
+                ImGui::Dummy(ImVec2(0, ImGui::GetFrameHeight() - ImGui::GetTextLineHeightWithSpacing()));
+                ImGui::Text("Step:");
                 ImGui::SameLine();
+                ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing());
                 keycode_selector("frame-stepper-step-keybind", GLFW_KEY_V);
                 
                 ImGui::EndTabItem();
@@ -816,7 +878,7 @@ class $modify(cocos2d::CCEGLView) {
         CCEGLView::onGLFWKeyCallback(window, key, scancode, action, mods);
 
         if (action == GLFW_PRESS) {
-            if (key == uv::hacks::get<int>("menu-keybind", GLFW_KEY_DELETE) && mods == uv::hacks::get<int>("menu-keybind-mods", 0)) {
+            if (key == uv::hacks::get<int>("menu-keybind", GLFW_KEY_RIGHT_SHIFT) && mods == uv::hacks::get<int>("menu-keybind-mods", 0)) {
                 uv::gui::toggle_time = std::chrono::steady_clock::now();
                 uv::gui::show = !uv::gui::show;
             }

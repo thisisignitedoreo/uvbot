@@ -19,11 +19,12 @@ namespace uv::bot::foreign {
 
     std::vector<std::string> supported_exts = {
         ".re3",
+        ".slc",
     };
 
     #define READ(f, t, p) (f).read(reinterpret_cast<char*>(p), sizeof(t))
 
-    error load_re3(std::ifstream &f) {
+    static error load_re3(std::ifstream &f) {
         float tps;
         READ(f, float, &tps);
 
@@ -68,12 +69,51 @@ namespace uv::bot::foreign {
 
         return error::none;
     }
+
+    static error load_slc_v1(std::ifstream &f) {
+        double tps;
+        READ(f, double, &tps);
+        uv::hacks::set<float>("tps", static_cast<float>(tps));
+
+        std::uint32_t action_count;
+        READ(f, std::uint32_t, &action_count);
+
+        for (std::uint32_t i = 0; i < action_count; i++) {
+            std::uint32_t action;
+            READ(f, std::uint32_t, &action);
+
+            uv::bot::input_action act;
+            act.frame = action >> 4;
+            int p2 = (action & 0b1000) > 0;
+            int button = ((action & 0b110) >> 1) - 1;
+            int hold = action & 0b0001;
+            act.flags = (((p2 * 3) + button) << 1) + hold;
+            
+            uv::bot::input_actions.push_back(act);
+        }
+
+        if (!f.eof()) {
+            // TODO: add random seed
+        }
+
+        return error::none;
+    }
+    
+    static error load_slc(std::ifstream &f) {
+        char magic[4];
+        f.read(magic, 4);
+        f.seekg(0);
+        if (memcmp(magic, "SILL", 4)) return error::unsupported_slc_v2;
+        else if (memcmp(magic, "SLC3", 4)) return error::unsupported_slc_v3;
+        return load_slc_v1(f);
+    }
     
     error load(std::string name) {
         uv::bot::clear();
         std::ifstream f(uv::macro_path / name, std::ios::binary);
 
         if (name.ends_with(".re3")) return load_re3(f);
+        if (name.ends_with(".slc")) return load_slc(f);
         return error::unsupported;
     }
 }
